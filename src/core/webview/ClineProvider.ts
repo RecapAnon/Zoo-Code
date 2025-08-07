@@ -96,7 +96,7 @@ import { ContextProxy } from "../config/ContextProxy"
 import { ProviderSettingsManager } from "../config/ProviderSettingsManager"
 import { CustomModesManager } from "../config/CustomModesManager"
 import { Task } from "../task/Task"
-import { getSystemPromptFilePath } from "../prompts/sections/custom-system-prompt"
+import { getSystemPromptFilePath, getGlobalSystemPromptFilePath } from "../prompts/sections/custom-system-prompt"
 
 import { webviewMessageHandler } from "./webviewMessageHandler"
 import type { ClineMessage, TodoItem } from "@roo-code/types"
@@ -2147,10 +2147,18 @@ export class ClineProvider
 
 	/**
 	 * Checks if there is a file-based system prompt override for the given mode
+	 * Checks both local project directory and global home directory
 	 */
 	async hasFileBasedSystemPromptOverride(mode: Mode): Promise<boolean> {
-		const promptFilePath = getSystemPromptFilePath(this.cwd, mode)
-		return await fileExistsAtPath(promptFilePath)
+		// Check local project directory first
+		const localPromptFilePath = getSystemPromptFilePath(this.cwd, mode)
+		if (await fileExistsAtPath(localPromptFilePath)) {
+			return true
+		}
+
+		// Check global home directory
+		const globalPromptFilePath = getGlobalSystemPromptFilePath(mode)
+		return await fileExistsAtPath(globalPromptFilePath)
 	}
 
 	/**
