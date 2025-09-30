@@ -1463,19 +1463,24 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					isFollowUpAnswered={messageOrGroup.isAnswered === true || messageOrGroup.ts === currentFollowUpTs}
 					isFollowUpAutoApprovalPaused={isFollowUpAutoApprovalPaused}
 					editable={
-						messageOrGroup.type === "ask" &&
-						messageOrGroup.ask === "tool" &&
-						(() => {
-							let tool: any = {}
-							try {
-								tool = JSON.parse(messageOrGroup.text || "{}")
-							} catch (_) {
-								if (messageOrGroup.text?.includes("updateTodoList")) {
-									tool = { tool: "updateTodoList" }
+						// Allow editing of user feedback messages
+						messageOrGroup.say === "user_feedback" ||
+						// Allow editing of AI text responses
+						(messageOrGroup.say === "text" && !messageOrGroup.partial) ||
+						// Allow editing of updateTodoList tool messages when buttons are enabled
+						(messageOrGroup.type === "ask" &&
+							messageOrGroup.ask === "tool" &&
+							(() => {
+								let tool: any = {}
+								try {
+									tool = JSON.parse(messageOrGroup.text || "{}")
+								} catch (_) {
+									if (messageOrGroup.text?.includes("updateTodoList")) {
+										tool = { tool: "updateTodoList" }
+									}
 								}
-							}
-							return tool.tool === "updateTodoList" && enableButtons && !!primaryButtonText
-						})()
+								return tool.tool === "updateTodoList" && enableButtons && !!primaryButtonText
+							})())
 					}
 					hasCheckpoint={hasCheckpoint}
 					onJumpToPreviousCheckpoint={handleScrollToLatestCheckpoint}
