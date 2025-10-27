@@ -9,6 +9,8 @@ import { getCommand } from "../utils/commands"
 import { ClineProvider } from "../core/webview/ClineProvider"
 import { ContextProxy } from "../core/config/ContextProxy"
 import { focusPanel } from "../utils/focusPanel"
+import { getStagedDiff, getStagedFiles } from "../utils/git"
+import { getWorkspacePath } from "../utils/path"
 
 import { registerHumanRelayCallback, unregisterHumanRelayCallback, handleHumanRelayResponse } from "./humanRelay"
 import { handleNewTask } from "./handleTask"
@@ -210,6 +212,119 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 			type: "action",
 			action: "toggleAutoApprove",
 		})
+	},
+	generateCommitMessage: async () => {
+		const cwd = getWorkspacePath()
+		if (!cwd) {
+			vscode.window.showErrorMessage("No workspace folder open")
+			return
+		}
+
+		// Check if there are staged changes
+		const stagedFiles = await getStagedFiles(cwd)
+		if (stagedFiles.length === 0) {
+			vscode.window.showInformationMessage(
+				"No staged changes found. Please stage your changes first using 'git add'.",
+			)
+			return
+		}
+
+		// Get the staged diff
+		const stagedDiff = await getStagedDiff(cwd)
+		if (
+			stagedDiff.startsWith("Failed") ||
+			stagedDiff.startsWith("Git is not installed") ||
+			stagedDiff.startsWith("Not a git repository")
+		) {
+			vscode.window.showErrorMessage(stagedDiff)
+			return
+		}
+
+		// Get the visible provider
+		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+		if (!visibleProvider) {
+			vscode.window.showErrorMessage("Roo Code is not active. Please open the Roo Code sidebar first.")
+			return
+		}
+
+		// Show progress notification
+		await vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Notification,
+				title: "Generating commit message...",
+				cancellable: false,
+			},
+			async () => {
+				try {
+					// Create a task to generate the commit message
+					const prompt = `Generate a concise and descriptive commit message for the following staged changes. Follow conventional commit format (e.g., feat:, fix:, docs:, style:, refactor:, test:, chore:). The message should be clear and explain what changes were made and why.
+
+Staged files:
+${stagedFiles.join("\n")}
+
+Diff of staged changes (truncated for context):
+${stagedDiff}
+
+Please provide ONLY the commit message, without any additional explanation or formatting. The message should be on a single line unless a body is needed for complex changes.`
+
+					// Create a task and wait for the response
+					const task = await visibleProvider.createTask(prompt)
+
+					// Wait for the task to complete with a simpler approach
+					await new Promise<void>((resolve) => {
+						let checkCount = 0
+						const maxChecks = 300 // 30 seconds with 100ms intervals
+
+						const checkInterval = setInterval(() => {
+							checkCount++
+							const messages = task.clineMessages
+
+							// Look for a message with type "say" and say "completion_result"
+							const completionMessage = messages.find(
+								(msg) => msg.type === "say" && msg.say === "completion_result",
+							)
+
+							if (completionMessage || checkCount >= maxChecks) {
+								clearInterval(checkInterval)
+
+								if (completionMessage && completionMessage.text) {
+									// Extract the commit message from the completion result
+									const commitMessage = completionMessage.text.trim()
+
+									if (commitMessage) {
+										// Get the SCM input box and set the message
+										const gitExtension = vscode.extensions.getExtension("vscode.git")?.exports
+										if (gitExtension) {
+											const git = gitExtension.getAPI(1)
+											const repo = git.repositories[0]
+											if (repo) {
+												repo.inputBox.value = commitMessage
+												vscode.window.showInformationMessage(
+													"Commit message generated successfully!",
+												)
+											}
+										}
+									}
+								} else if (checkCount >= maxChecks) {
+									vscode.window.showErrorMessage("Timeout generating commit message")
+								}
+
+								// Clear the task
+								visibleProvider.clearTask()
+								resolve()
+							}
+						}, 100)
+					})
+				} catch (error) {
+					vscode.window.showErrorMessage(
+						`Failed to generate commit message: ${error instanceof Error ? error.message : String(error)}`,
+					)
+					if (visibleProvider) {
+						visibleProvider.clearTask()
+					}
+				}
+			},
+		)
 	},
 })
 
