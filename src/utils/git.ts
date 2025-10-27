@@ -396,3 +396,70 @@ export async function getGitStatus(cwd: string, maxFiles: number = 20): Promise<
 		return null
 	}
 }
+
+/**
+ * Gets the staged changes (diff) for commit message generation
+ * @param cwd The working directory
+ * @returns The staged diff or an error message
+ */
+export async function getStagedDiff(cwd: string): Promise<string> {
+	try {
+		const isInstalled = await checkGitInstalled()
+		if (!isInstalled) {
+			return "Git is not installed"
+		}
+
+		const isRepo = await checkGitRepo(cwd)
+		if (!isRepo) {
+			return "Not a git repository"
+		}
+
+		// Get the staged diff
+		const { stdout: diff } = await execAsync("git diff --cached", { cwd })
+
+		if (!diff.trim()) {
+			return "No staged changes found. Please stage your changes first using 'git add'."
+		}
+
+		// Limit the output to prevent overwhelming the AI
+		const lineLimit = GIT_OUTPUT_LINE_LIMIT
+		return truncateOutput(diff, lineLimit)
+	} catch (error) {
+		console.error("Error getting staged diff:", error)
+		return `Failed to get staged diff: ${error instanceof Error ? error.message : String(error)}`
+	}
+}
+
+/**
+ * Gets a summary of staged files for commit message generation
+ * @param cwd The working directory
+ * @returns List of staged files with their status
+ */
+export async function getStagedFiles(cwd: string): Promise<string[]> {
+	try {
+		const isInstalled = await checkGitInstalled()
+		if (!isInstalled) {
+			return []
+		}
+
+		const isRepo = await checkGitRepo(cwd)
+		if (!isRepo) {
+			return []
+		}
+
+		// Get list of staged files
+		const { stdout } = await execAsync("git diff --cached --name-status", { cwd })
+
+		if (!stdout.trim()) {
+			return []
+		}
+
+		return stdout
+			.trim()
+			.split("\n")
+			.filter((line) => line.length > 0)
+	} catch (error) {
+		console.error("Error getting staged files:", error)
+		return []
+	}
+}
