@@ -171,7 +171,18 @@ export const globalSettingsSchema = z.object({
 		.optional(),
 
 	ttsEnabled: z.boolean().optional(),
+	ttsProvider: z.enum(["default", "google-cloud", "azure"]).optional(),
 	ttsSpeed: z.number().optional(),
+	ttsSelectedVoice: z.string().optional(),
+	ttsGoogleVoice: z.string().optional(),
+	ttsAzureVoice: z.string().optional(),
+	ttsMonthlyUsage: z
+		.object({
+			google: z.number().optional(),
+			azure: z.number().optional(),
+			lastResetDate: z.string().optional(),
+		})
+		.optional(),
 	soundEnabled: z.boolean().optional(),
 	soundVolume: z.number().optional(),
 
@@ -310,6 +321,9 @@ export const SECRET_STATE_KEYS = [
 // Global secrets that are part of GlobalSettings (not ProviderSettings)
 export const GLOBAL_SECRET_KEYS = [
 	"openRouterImageApiKey", // For image generation
+	"googleCloudTtsApiKey", // For Google Cloud TTS
+	"azureTtsApiKey", // For Microsoft Azure TTS
+	"azureTtsRegion", // Azure TTS region/endpoint
 ] as const
 
 // Type for the actual secret storage keys

@@ -58,7 +58,17 @@ import { selectImages } from "../../integrations/misc/process-images"
 import { getTheme } from "../../integrations/theme/getTheme"
 import { searchWorkspaceFiles } from "../../services/search/file-search"
 import { fileExistsAtPath } from "../../utils/fs"
-import { playTts, setTtsEnabled, setTtsSpeed, stopTts } from "../../utils/tts"
+import {
+	playTts,
+	setTtsEnabled,
+	setTtsSpeed,
+	stopTts,
+	initializeTts,
+	getAvailableVoices,
+	getCurrentProviderName,
+	getTtsUsageStats,
+	isProviderConfigured,
+} from "../../utils/tts"
 import { searchCommits } from "../../utils/git"
 import { exportSettings, importSettingsWithFeedback } from "../config/importExport"
 import { getOpenAiModels } from "../../api/providers/openai"
@@ -546,6 +556,9 @@ export const webviewMessageHandler = async (
 
 	switch (message.type) {
 		case "webviewDidLaunch":
+			// Initialize TTS system with context proxy
+			initializeTts(provider.contextProxy)
+
 			// Load custom modes first
 			const customModes = await provider.customModesManager.getCustomModes()
 			await updateGlobalState("customModes", customModes)
@@ -1595,7 +1608,73 @@ export const webviewMessageHandler = async (
 		case "stopTts":
 			stopTts()
 			break
-
+		case "ttsProvider":
+			// Handle TTS provider selection
+			if (message.text) {
+				await updateGlobalState("ttsProvider", message.text)
+				await provider.postStateToWebview()
+			}
+			break
+		case "ttsGoogleVoice":
+			// Handle Google Cloud TTS voice selection
+			if (message.text) {
+				await updateGlobalState("ttsGoogleVoice", message.text)
+				await provider.postStateToWebview()
+			}
+			break
+		case "ttsAzureVoice":
+			// Handle Azure TTS voice selection
+			if (message.text) {
+				await updateGlobalState("ttsAzureVoice", message.text)
+				await provider.postStateToWebview()
+			}
+			break
+		case "ttsAzureRegion":
+			// Handle Azure region selection
+			if (message.text) {
+				await updateGlobalState("ttsAzureRegion", message.text)
+				await provider.postStateToWebview()
+			}
+			break
+		case "getTtsVoices":
+			// Get available voices for the current provider
+			try {
+				const voices = await getAvailableVoices()
+				await provider.postMessageToWebview({
+					type: "ttsVoices",
+					voices: voices,
+				})
+			} catch (error) {
+				console.error("Failed to get TTS voices:", error)
+				await provider.postMessageToWebview({
+					type: "ttsVoices",
+					voices: [],
+				})
+			}
+			break
+		case "getTtsUsageStats":
+			// Get TTS usage statistics
+			try {
+				const stats = getTtsUsageStats()
+				await provider.postMessageToWebview({
+					type: "ttsUsageStats",
+					stats: stats,
+				})
+			} catch (error) {
+				console.error("Failed to get TTS usage stats:", error)
+			}
+			break
+		case "checkTtsProviderConfigured":
+			// Check if a specific provider is configured
+			if (message.text) {
+				const isConfigured = isProviderConfigured(message.text)
+				await provider.postMessageToWebview({
+					type: "ttsProviderConfigured",
+					provider: message.text,
+					configured: isConfigured,
+				})
+			}
+			break
 		case "updateVSCodeSetting": {
 			const { setting, value } = message
 
