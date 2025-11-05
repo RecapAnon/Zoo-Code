@@ -102,6 +102,9 @@ export interface ExtensionMessage {
 		| "remoteBrowserEnabled"
 		| "ttsStart"
 		| "ttsStop"
+		| "ttsVoices"
+		| "ttsUsageStats"
+		| "ttsProviderConfigured"
 		| "maxReadFileLine"
 		| "fileSearchResults"
 		| "toggleApiConfigPin"
@@ -221,6 +224,10 @@ export interface ExtensionMessage {
 	isBrowserSessionActive?: boolean // For browser session panel updates
 	stepIndex?: number // For browserSessionNavigate: the target step index to display
 	tools?: SerializedCustomToolDefinition[] // For customToolsResult
+	voices?: any[] // For TTS voices
+	stats?: any // For TTS usage stats
+	provider?: string // For TTS provider checks
+	configured?: boolean // For TTS provider configuration status
 }
 
 export type ExtensionState = Pick<
