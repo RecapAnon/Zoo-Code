@@ -28,6 +28,19 @@ vitest.mock("../fetchers/modelCache", () => ({
 				description: "Claude 3.7 Sonnet",
 				thinking: false,
 			},
+			"anthropic/claude-sonnet-4.5": {
+				maxTokens: 8192,
+				contextWindow: 200000,
+				supportsImages: true,
+				supportsPromptCache: true,
+				supportsNativeTools: true,
+				inputPrice: 3,
+				outputPrice: 15,
+				cacheWritesPrice: 3.75,
+				cacheReadsPrice: 0.3,
+				description: "Claude 4.5 Sonnet",
+				thinking: false,
+			},
 			"anthropic/claude-3.7-sonnet:thinking": {
 				maxTokens: 128000,
 				contextWindow: 200000,
@@ -83,8 +96,9 @@ describe("OpenRouterHandler", () => {
 		it("returns default model info when options are not provided", async () => {
 			const handler = new OpenRouterHandler({})
 			const result = await handler.fetchModel()
-			expect(result.id).toBe("anthropic/claude-sonnet-4")
+			expect(result.id).toBe("anthropic/claude-sonnet-4.5")
 			expect(result.info.supportsPromptCache).toBe(true)
+			expect(result.info.supportsNativeTools).toBe(true)
 		})
 
 		it("honors custom maxTokens for thinking models", async () => {
@@ -180,6 +194,7 @@ describe("OpenRouterHandler", () => {
 					top_p: undefined,
 					transforms: ["middle-out"],
 				}),
+				{ headers: { "x-anthropic-beta": "fine-grained-tool-streaming-2025-05-14" } },
 			)
 		})
 
@@ -204,7 +219,9 @@ describe("OpenRouterHandler", () => {
 
 			await handler.createMessage("test", []).next()
 
-			expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ transforms: ["middle-out"] }))
+			expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ transforms: ["middle-out"] }), {
+				headers: { "x-anthropic-beta": "fine-grained-tool-streaming-2025-05-14" },
+			})
 		})
 
 		it("adds cache control for supported models", async () => {
@@ -246,6 +263,7 @@ describe("OpenRouterHandler", () => {
 						}),
 					]),
 				}),
+				{ headers: { "x-anthropic-beta": "fine-grained-tool-streaming-2025-05-14" } },
 			)
 		})
 
@@ -265,6 +283,79 @@ describe("OpenRouterHandler", () => {
 			const generator = handler.createMessage("test", [])
 			await expect(generator.next()).rejects.toThrow("OpenRouter API Error 500: API Error")
 		})
+
+		it("yields tool_call_end events when finish_reason is tool_calls", async () => {
+			// Import NativeToolCallParser to set up state
+			const { NativeToolCallParser } = await import("../../../core/assistant-message/NativeToolCallParser")
+
+			// Clear any previous state
+			NativeToolCallParser.clearRawChunkState()
+
+			const handler = new OpenRouterHandler(mockOptions)
+
+			const mockStream = {
+				async *[Symbol.asyncIterator]() {
+					yield {
+						id: "test-id",
+						choices: [
+							{
+								delta: {
+									tool_calls: [
+										{
+											index: 0,
+											id: "call_openrouter_test",
+											function: { name: "read_file", arguments: '{"path":"test.ts"}' },
+										},
+									],
+								},
+								index: 0,
+							},
+						],
+					}
+					yield {
+						id: "test-id",
+						choices: [
+							{
+								delta: {},
+								finish_reason: "tool_calls",
+								index: 0,
+							},
+						],
+						usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+					}
+				},
+			}
+
+			const mockCreate = vitest.fn().mockResolvedValue(mockStream)
+			;(OpenAI as any).prototype.chat = {
+				completions: { create: mockCreate },
+			} as any
+
+			const generator = handler.createMessage("test", [])
+			const chunks = []
+
+			for await (const chunk of generator) {
+				// Simulate what Task.ts does: when we receive tool_call_partial,
+				// process it through NativeToolCallParser to populate rawChunkTracker
+				if (chunk.type === "tool_call_partial") {
+					NativeToolCallParser.processRawChunk({
+						index: chunk.index,
+						id: chunk.id,
+						name: chunk.name,
+						arguments: chunk.arguments,
+					})
+				}
+				chunks.push(chunk)
+			}
+
+			// Should have tool_call_partial and tool_call_end
+			const partialChunks = chunks.filter((chunk) => chunk.type === "tool_call_partial")
+			const endChunks = chunks.filter((chunk) => chunk.type === "tool_call_end")
+
+			expect(partialChunks).toHaveLength(1)
+			expect(endChunks).toHaveLength(1)
+			expect(endChunks[0].id).toBe("call_openrouter_test")
+		})
 	})
 
 	describe("completePrompt", () => {
@@ -281,14 +372,16 @@ describe("OpenRouterHandler", () => {
 
 			expect(result).toBe("test completion")
 
-			expect(mockCreate).toHaveBeenCalledWith({
-				model: mockOptions.openRouterModelId,
-				max_tokens: 8192,
-				thinking: undefined,
-				temperature: 0,
-				messages: [{ role: "user", content: "test prompt" }],
-				stream: false,
-			})
+			expect(mockCreate).toHaveBeenCalledWith(
+				{
+					model: mockOptions.openRouterModelId,
+					max_tokens: 8192,
+					temperature: 0,
+					messages: [{ role: "user", content: "test prompt" }],
+					stream: false,
+				},
+				{ headers: { "x-anthropic-beta": "fine-grained-tool-streaming-2025-05-14" } },
+			)
 		})
 
 		it("handles API errors", async () => {

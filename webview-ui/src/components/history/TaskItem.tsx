@@ -47,7 +47,8 @@ const TaskItem = ({
 			key={item.id}
 			data-testid={`task-item-${item.id}`}
 			className={cn(
-				"cursor-pointer group bg-vscode-editor-background rounded relative overflow-hidden border border-transparent hover:bg-vscode-list-hoverBackground transition-colors",
+				"cursor-pointer group bg-vscode-editor-background rounded-xl relative overflow-hidden border hover:bg-vscode-editor-foreground/10 transition-colors",
+				"border-transparent",
 				className,
 			)}
 			onClick={handleClick}>
@@ -70,7 +71,7 @@ const TaskItem = ({
 				<div className="flex-1 min-w-0">
 					<div
 						className={cn(
-							"overflow-hidden whitespace-pre-wrap text-vscode-foreground text-ellipsis line-clamp-2",
+							"overflow-hidden whitespace-pre-wrap font-light text-vscode-foreground text-ellipsis line-clamp-3",
 							{
 								"text-base": !isCompact,
 							},
@@ -80,6 +81,7 @@ const TaskItem = ({
 						{...(item.highlight ? { dangerouslySetInnerHTML: { __html: item.highlight } } : {})}>
 						{item.highlight ? undefined : item.task}
 					</div>
+
 					<TaskItemFooter
 						item={item}
 						variant={variant}

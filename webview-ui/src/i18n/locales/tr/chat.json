@@ -26,7 +26,9 @@
 		"shareSuccessOrganization": "Organizasyon bağlantısı panoya kopyalandı",
 		"shareSuccessPublic": "Genel bağlantı panoya kopyalandı",
 		"openInCloud": "Görevi Roo Code Cloud'da aç",
-		"openInCloudIntro": "Roo'yu her yerden izlemeye veya etkileşime devam et. Açmak için tara, tıkla veya kopyala."
+		"openInCloudIntro": "Roo'yu her yerden izlemeye veya etkileşime devam et. Açmak için tara, tıkla veya kopyala.",
+		"openApiHistory": "API Geçmişini Aç",
+		"openUiHistory": "UI Geçmişini Aç"
 	},
 	"unpin": "Sabitlemeyi iptal et",
 	"pin": "Sabitle",
@@ -85,24 +87,17 @@
 		"tooltip": "Mevcut işlemi iptal et"
 	},
 	"scrollToBottom": "Sohbetin altına kaydır",
-	"about": "AI yardımıyla kod oluşturun, yeniden düzenleyin ve hatalarını ayıklayın. Daha fazla bilgi edinmek için <DocsLink>belgelerimize</DocsLink> göz atın.",
-	"onboarding": "<strong>Bu çalışma alanındaki görev listeniz boş.</strong> Aşağıya bir görev yazarak başlayın. Nasıl başlayacağınızdan emin değil misiniz? Roo'nun sizin için neler yapabileceği hakkında daha fazla bilgiyi <DocsLink>belgelerde</DocsLink> okuyun.",
+	"about": "Roo Code, düzenleyicinizdeki bütün bir yapay zeka geliştirme ekibidir.",
+	"docs": "Daha fazla bilgi için <DocsLink>belgelerimize</DocsLink> göz atın.",
+	"onboarding": "Bu çalışma alanındaki görev listeniz boş.",
 	"rooTips": {
-		"boomerangTasks": {
-			"title": "Görev Orkestrasyonu",
-			"description": "Görevleri daha küçük, yönetilebilir parçalara ayırın."
-		},
-		"stickyModels": {
-			"title": "Yapışkan Modlar",
-			"description": "Her mod, en son kullandığınız modeli hatırlar"
-		},
-		"tools": {
-			"title": "Araçlar",
-			"description": "AI'nın web'e göz atarak, komutlar çalıştırarak ve daha fazlasını yaparak sorunları çözmesine izin verin."
-		},
 		"customizableModes": {
-			"title": "Özelleştirilebilir Modlar",
-			"description": "Kendi davranışları ve atanmış modelleri ile özelleştirilmiş kişilikler"
+			"title": "Özelleştirilebilir modlar",
+			"description": "Göreve odaklanan ve sonuç veren özel kişilikler."
+		},
+		"modelAgnostic": {
+			"title": "Kendi modelinizi getirin",
+			"description": "Kendi sağlayıcı anahtarınızı kullanın veya hatta yerel çıkarım yapın — ek ücret yok, kilitlenme yok, kısıtlama yok"
 		}
 	},
 	"selectMode": "Etkileşim modunu seçin",
@@ -141,13 +136,27 @@
 		"failed": "API İsteği Başarısız",
 		"streaming": "API İsteği...",
 		"cancelled": "API İsteği İptal Edildi",
-		"streamingFailed": "API Akışı Başarısız"
+		"streamingFailed": "API Akışı Başarısız",
+		"errorTitle": "API Hatası {{code}}",
+		"errorMessage": {
+			"docs": "Belgeler",
+			"400": "Sağlayıcı isteği bu şekilde işleyemedi. Görevi durdur ve farklı bir yaklaşım dene.",
+			"401": "Sağlayıcı ile kimlik doğrulaması yapılamadı. Lütfen API anahtarı yapılandırmanızı kontrol edin.",
+			"402": "Hesabınızda para/kredi bitti gibi görünüyor. Sağlayıcıya git ve devam etmek için daha fazla ekle.",
+			"403": "Yetkisiz. API anahtarınız geçerli ama sağlayıcı bu isteği tamamlamayı reddetti.",
+			"429": "Çok fazla istek. Sağlayıcı tarafından oran sınırlaması uygulanıyor. Lütfen sonraki API çağrısından önce biraz bekle.",
+			"500": "Sağlayıcı sunucu hatası. Sağlayıcı tarafında bir sorun var, isteğinizde sorun yok.",
+			"unknown": "Bilinmeyen API hatası. Lütfen Roo Code desteğiyle iletişime geç."
+		}
 	},
 	"checkpoint": {
 		"regular": "Kontrol Noktası",
 		"initializingWarning": "Kontrol noktası hala başlatılıyor... Bu çok uzun sürerse, <settingsLink>ayarlar</settingsLink> bölümünden kontrol noktalarını devre dışı bırakabilir ve görevinizi yeniden başlatabilirsiniz.",
 		"menu": {
 			"viewDiff": "Farkları Görüntüle",
+			"more": "Daha fazla seçenek",
+			"viewDiffFromInit": "Tüm Değişiklikleri Görüntüle",
+			"viewDiffWithCurrent": "Bu Kontrol Noktasından Bu Yana Değişiklikleri Görüntüle",
 			"restore": "Kontrol Noktasını Geri Yükle",
 			"restoreFiles": "Dosyaları Geri Yükle",
 			"restoreFilesDescription": "Projenizin dosyalarını bu noktada alınan bir anlık görüntüye geri yükler.",
@@ -275,11 +284,20 @@
 		"thinking": "Düşünüyor",
 		"seconds": "{{count}}sn"
 	},
-	"contextCondense": {
-		"title": "Bağlam Özetlendi",
-		"condensing": "Bağlam yoğunlaştırılıyor...",
-		"errorHeader": "Bağlam yoğunlaştırılamadı",
-		"tokens": "token"
+	"contextManagement": {
+		"tokens": "token",
+		"condensation": {
+			"title": "Bağlam Özetlendi",
+			"inProgress": "Bağlam yoğunlaştırılıyor...",
+			"errorHeader": "Bağlam yoğunlaştırılamadı"
+		},
+		"truncation": {
+			"title": "Bağlam Kısaltıldı",
+			"inProgress": "Bağlam kısaltılıyor...",
+			"messagesRemoved": "{{count}} mesaj kaldırıldı",
+			"messagesRemoved_other": "{{count}} mesaj kaldırıldı",
+			"description": "Bağlam penceresi sınırında kalmak için eski mesajlar konuşmadan kaldırıldı. Bu, yoğunlaştırmaya kıyasla hızlı ancak daha az bağlam koruyucu bir yaklaşımdır."
+		}
 	},
 	"followUpSuggest": {
 		"copyToInput": "Giriş alanına kopyala (veya Shift + tıklama)",
@@ -295,9 +313,22 @@
 			"selectModel": "Başlamak için Ayarlar'da Roo Code Cloud sağlayıcısından <code>roo/code-supernova</code>'yı seçin.",
 			"goToSettingsButton": "Ayarlar'a Git"
 		},
+		"release": {
+			"heading": "Bu sürümdeki yenilikler:",
+			"contextRewind": "İyileştirilmiş bağlam sıkıştırması, artık bir kontrol noktasına geri sarma sırasında tam önceki bağlamı geri yüklemenizi sağlıyor",
+			"rooProvider": "Roo Code Cloud sağlayıcısı artık akıl yürütme içeriğini korur ve daha iyi performans için varsayılan olarak yerel araçları kullanır"
+		},
+		"cloudAgents": {
+			"heading": "Cloud'daki yenilikler:",
+			"specialized": "<bold>Explainer</bold>, <bold>Planner</bold> ve <bold>Coder</bold> tanıtımı - iş akışlarını geliştirmek için üç özel bulut ajanı.",
+			"description": "Ajanlar bulutta birlikte çalışır ve web'den veya Slack üzerinden tetiklenebilir.",
+			"tryButton": "Bulut Ajanlarını Dene"
+		},
+		"careers": "Ayrıca, <careersLink>işe alım yapıyoruz!</careersLink>",
 		"socialLinks": "Bize <xLink>X</xLink>, <discordLink>Discord</discordLink>, veya <redditLink>r/RooCode</redditLink>'da katılın 🚀"
 	},
 	"browser": {
+		"session": "Tarayıcı Oturumu",
 		"rooWantsToUse": "Roo tarayıcıyı kullanmak istiyor",
 		"consoleLogs": "Konsol Kayıtları",
 		"noNewLogs": "(Yeni kayıt yok)",
@@ -310,12 +341,14 @@
 		},
 		"sessionStarted": "Tarayıcı Oturumu Başlatıldı",
 		"actions": {
-			"title": "Tarayıcı İşlemi: ",
+			"title": "Tarayıcı Eylemi: ",
 			"launch": "{{url}} adresinde tarayıcı başlat",
 			"click": "Tıkla ({{coordinate}})",
 			"type": "Yaz \"{{text}}\"",
+			"press": "{{key}} tuşuna bas",
 			"scrollDown": "Aşağı kaydır",
 			"scrollUp": "Yukarı kaydır",
+			"hover": "Üzerine gel ({{coordinate}})",
 			"close": "Tarayıcıyı kapat"
 		}
 	},
@@ -414,5 +447,12 @@
 	"slashCommand": {
 		"wantsToRun": "Roo bir slash komutu çalıştırmak istiyor",
 		"didRun": "Roo bir slash komutu çalıştırdı"
+	},
+	"todo": {
+		"partial": "{{total}} yapılacaklar listesinden {{completed}} tanesi tamamlandı",
+		"complete": "{{total}} yapılacaklar listesi tamamlandı",
+		"updated": "Yapılacaklar listesi güncellendi",
+		"completed": "Tamamlandı",
+		"started": "Başladı"
 	}
 }

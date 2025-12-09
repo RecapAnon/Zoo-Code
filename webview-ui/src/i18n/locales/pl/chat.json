@@ -26,7 +26,9 @@
 		"shareSuccessOrganization": "Link organizacji skopiowany do schowka",
 		"shareSuccessPublic": "Link publiczny skopiowany do schowka",
 		"openInCloud": "Otwórz zadanie w Roo Code Cloud",
-		"openInCloudIntro": "Kontynuuj monitorowanie lub interakcję z Roo z dowolnego miejsca. Zeskanuj, kliknij lub skopiuj, aby otworzyć."
+		"openInCloudIntro": "Kontynuuj monitorowanie lub interakcję z Roo z dowolnego miejsca. Zeskanuj, kliknij lub skopiuj, aby otworzyć.",
+		"openApiHistory": "Otwórz historię API",
+		"openUiHistory": "Otwórz historię UI"
 	},
 	"unpin": "Odepnij",
 	"pin": "Przypnij",
@@ -85,24 +87,17 @@
 		"tooltip": "Anuluj bieżącą operację"
 	},
 	"scrollToBottom": "Przewiń do dołu czatu",
-	"about": "Generuj, refaktoryzuj i debuguj kod z pomocą sztucznej inteligencji. Sprawdź naszą <DocsLink>dokumentację</DocsLink>, aby dowiedzieć się więcej.",
-	"onboarding": "<strong>Twoja lista zadań w tym obszarze roboczym jest pusta.</strong> Zacznij od wpisania zadania poniżej. Nie wiesz, jak zacząć? Przeczytaj więcej o tym, co Roo może dla Ciebie zrobić w <DocsLink>dokumentacji</DocsLink>.",
+	"about": "Roo Code to cały zespół deweloperów AI w Twoim edytorze.",
+	"docs": "Sprawdź naszą <DocsLink>dokumentację</DocsLink>, aby dowiedzieć się więcej.",
+	"onboarding": "Twoja lista zadań w tym obszarze roboczym jest pusta.",
 	"rooTips": {
-		"boomerangTasks": {
-			"title": "Orkiestracja Zadań",
-			"description": "Podziel zadania na mniejsze, łatwiejsze do zarządzania części."
-		},
-		"stickyModels": {
-			"title": "Tryby trwałe",
-			"description": "Każdy tryb zapamiętuje ostatnio używany model"
-		},
-		"tools": {
-			"title": "Narzędzia",
-			"description": "Pozwól sztucznej inteligencji rozwiązywać problemy, przeglądając sieć, uruchamiając polecenia i nie tylko."
-		},
 		"customizableModes": {
 			"title": "Konfigurowalne tryby",
-			"description": "Wyspecjalizowane persona z własnymi zachowaniami i przypisanymi modelami"
+			"description": "Wyspecjalizowane persony, które trzymają się zadania i dostarczają."
+		},
+		"modelAgnostic": {
+			"title": "Przynieś własny model",
+			"description": "Użyj własnego klucza dostawcy lub nawet uruchom lokalne wnioskowanie — bez narzutów, bez blokad, bez ograniczeń"
 		}
 	},
 	"selectMode": "Wybierz tryb interakcji",
@@ -141,13 +136,27 @@
 		"failed": "Zapytanie API nie powiodło się",
 		"streaming": "Zapytanie API...",
 		"cancelled": "Zapytanie API anulowane",
-		"streamingFailed": "Strumieniowanie API nie powiodło się"
+		"streamingFailed": "Strumieniowanie API nie powiodło się",
+		"errorTitle": "Błąd API {{code}}",
+		"errorMessage": {
+			"docs": "Dokumentacja",
+			"400": "Dostawca nie mógł przetworzyć żądania. Zatrzymaj zadanie i spróbuj innego podejścia.",
+			"401": "Nie można uwierzytelnić u dostawcy. Sprawdź konfigurację klucza API.",
+			"402": "Wygląda na to, że wyczerpałeś środki/kredyty na swoim koncie. Przejdź do dostawcy i dodaj więcej, aby kontynuować.",
+			"403": "Brak autoryzacji. Twój klucz API jest ważny, ale dostawca odmówił ukończenia tego żądania.",
+			"429": "Zbyt wiele żądań. Dostawca ogranicza Ci szybkość żądań. Poczekaj chwilę przed następnym wywołaniem API.",
+			"500": "Błąd serwera dostawcy. Po stronie dostawcy coś się nie powiodło, w Twoim żądaniu nie ma nic złego.",
+			"unknown": "Nieznany błąd API. Skontaktuj się z pomocą techniczną Roo Code."
+		}
 	},
 	"checkpoint": {
 		"regular": "Punkt kontrolny",
 		"initializingWarning": "Trwa inicjalizacja punktu kontrolnego... Jeśli to trwa zbyt długo, możesz wyłączyć punkty kontrolne w <settingsLink>ustawieniach</settingsLink> i uruchomić zadanie ponownie.",
 		"menu": {
 			"viewDiff": "Zobacz różnice",
+			"more": "Więcej opcji",
+			"viewDiffFromInit": "Zobacz wszystkie zmiany",
+			"viewDiffWithCurrent": "Zobacz zmiany od tego punktu kontrolnego",
 			"restore": "Przywróć punkt kontrolny",
 			"restoreFiles": "Przywróć pliki",
 			"restoreFilesDescription": "Przywraca pliki Twojego projektu do zrzutu wykonanego w tym punkcie.",
@@ -274,11 +283,20 @@
 		"thinking": "Myślenie",
 		"seconds": "{{count}} s"
 	},
-	"contextCondense": {
-		"title": "Kontekst skondensowany",
-		"condensing": "Kondensowanie kontekstu...",
-		"errorHeader": "Nie udało się skondensować kontekstu",
-		"tokens": "tokeny"
+	"contextManagement": {
+		"tokens": "tokeny",
+		"condensation": {
+			"title": "Kontekst skondensowany",
+			"inProgress": "Kondensowanie kontekstu...",
+			"errorHeader": "Nie udało się skondensować kontekstu"
+		},
+		"truncation": {
+			"title": "Kontekst obcięty",
+			"inProgress": "Obcinanie kontekstu...",
+			"messagesRemoved": "{{count}} wiadomość usunięta",
+			"messagesRemoved_other": "{{count}} wiadomości usunięte",
+			"description": "Starsze wiadomości zostały usunięte z konwersacji, aby pozostać w granicach okna kontekstu. To szybsze, ale mniej zachowujące kontekst podejście w porównaniu z kondensacją."
+		}
 	},
 	"followUpSuggest": {
 		"copyToInput": "Kopiuj do pola wprowadzania (lub Shift + kliknięcie)",
@@ -294,9 +312,22 @@
 			"selectModel": "Wybierz <code>roo/code-supernova</code> od dostawcy Roo Code Cloud w Ustawieniach, aby rozpocząć.",
 			"goToSettingsButton": "Przejdź do Ustawień"
 		},
+		"release": {
+			"heading": "Nowości:",
+			"contextRewind": "Ulepszona kondensacja kontekstu pozwala teraz przywrócić pełny poprzedni kontekst przy przewijaniu do punktu kontrolnego",
+			"rooProvider": "Dostawca Roo Code Cloud teraz zachowuje zawartość rozumowania i domyślnie używa narzędzi natywnych dla lepszej wydajności"
+		},
+		"cloudAgents": {
+			"heading": "Nowości w chmurze:",
+			"specialized": "Przedstawiamy <bold>Explainer</bold>, <bold>Planner</bold> i <bold>Coder</bold> - trzech wyspecjalizowanych agentów chmurowych, aby ulepszyć Twoje przepływy pracy.",
+			"description": "Agenci pracują razem w chmurze i mogą być uruchamiani z sieci lub przez Slack.",
+			"tryButton": "Wypróbuj agentów chmurowych"
+		},
+		"careers": "Dodatkowo, <careersLink>zatrudniamy!</careersLink>",
 		"socialLinks": "Dołącz do nas na <xLink>X</xLink>, <discordLink>Discord</discordLink>, lub <redditLink>r/RooCode</redditLink> 🚀"
 	},
 	"browser": {
+		"session": "Sesja przeglądarki",
 		"rooWantsToUse": "Roo chce użyć przeglądarki",
 		"consoleLogs": "Logi konsoli",
 		"noNewLogs": "(Brak nowych logów)",
@@ -313,8 +344,10 @@
 			"launch": "Uruchom przeglądarkę na {{url}}",
 			"click": "Kliknij ({{coordinate}})",
 			"type": "Wpisz \"{{text}}\"",
+			"press": "Naciśnij {{key}}",
 			"scrollDown": "Przewiń w dół",
 			"scrollUp": "Przewiń w górę",
+			"hover": "Najedź ({{coordinate}})",
 			"close": "Zamknij przeglądarkę"
 		}
 	},
@@ -413,5 +446,12 @@
 	"slashCommand": {
 		"wantsToRun": "Roo chce uruchomić komendę slash",
 		"didRun": "Roo uruchomił komendę slash"
+	},
+	"todo": {
+		"partial": "Ukończono {{completed}} z {{total}} zadań do wykonania",
+		"complete": "Ukończono {{total}} zadań do wykonania",
+		"updated": "Zaktualizowano listę zadań do wykonania",
+		"completed": "Ukończono",
+		"started": "Rozpoczęto"
 	}
 }

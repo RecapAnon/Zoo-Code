@@ -148,6 +148,18 @@ vi.mock("../../environment/getEnvironmentDetails", () => ({
 
 vi.mock("../../ignore/RooIgnoreController")
 
+vi.mock("../../condense", async (importOriginal) => {
+	const actual = (await importOriginal()) as any
+	return {
+		...actual,
+		summarizeConversation: vi.fn().mockResolvedValue({
+			messages: [{ role: "user", content: [{ type: "text", text: "continued" }], ts: Date.now() }],
+			summary: "summary",
+			cost: 0,
+			newContextTokens: 1,
+		}),
+	}
+})
 // Mock storagePathManager to prevent dynamic import issues.
 vi.mock("../../../utils/storage", () => ({
 	getTaskDirectoryPath: vi
@@ -969,6 +981,7 @@ describe("Cline", () => {
 					getState: vi.fn().mockResolvedValue({
 						apiConfiguration: mockApiConfig,
 					}),
+					getMcpHub: vi.fn().mockReturnValue(undefined),
 					say: vi.fn(),
 					postStateToWebview: vi.fn().mockResolvedValue(undefined),
 					postMessageToWebview: vi.fn().mockResolvedValue(undefined),
@@ -1094,9 +1107,9 @@ describe("Cline", () => {
 				await parentIterator.next()
 
 				// Simulate time passing (more than rate limit)
-				const originalDateNow = Date.now
-				const mockTime = Date.now() + (mockApiConfig.rateLimitSeconds + 1) * 1000
-				Date.now = vi.fn(() => mockTime)
+				const originalPerformanceNow = performance.now
+				const mockTime = performance.now() + (mockApiConfig.rateLimitSeconds + 1) * 1000
+				performance.now = vi.fn(() => mockTime)
 
 				// Create a subtask after time has passed
 				const child = new Task({
@@ -1117,8 +1130,8 @@ describe("Cline", () => {
 				// Verify no rate limiting was applied
 				expect(mockDelay).not.toHaveBeenCalled()
 
-				// Restore Date.now
-				Date.now = originalDateNow
+				// Restore performance.now
+				performance.now = originalPerformanceNow
 			})
 
 			it("should share rate limiting across multiple subtasks", async () => {
@@ -1611,69 +1624,6 @@ describe("Cline", () => {
 		})
 	})
 
-	describe("Conversation continuity after condense and deletion", () => {
-		it("should set suppressPreviousResponseId when last message is condense_context", async () => {
-			// Arrange: create task
-			const task = new Task({
-				provider: mockProvider,
-				apiConfiguration: mockApiConfig,
-				task: "initial task",
-				startTask: false,
-			})
-
-			// Ensure provider state returns required fields for attemptApiRequest
-			mockProvider.getState = vi.fn().mockResolvedValue({
-				apiConfiguration: mockApiConfig,
-			})
-
-			// Simulate deletion that leaves a condense_context as the last message
-			const condenseMsg = {
-				ts: Date.now(),
-				type: "say" as const,
-				say: "condense_context" as const,
-				contextCondense: {
-					summary: "summarized",
-					cost: 0.001,
-					prevContextTokens: 1200,
-					newContextTokens: 400,
-				},
-			}
-			await task.overwriteClineMessages([condenseMsg])
-
-			// Spy and return a minimal successful stream to exercise attemptApiRequest
-			const mockStream = {
-				async *[Symbol.asyncIterator]() {
-					yield { type: "text", text: "ok" }
-				},
-				async next() {
-					return { done: true, value: { type: "text", text: "ok" } }
-				},
-				async return() {
-					return { done: true, value: undefined }
-				},
-				async throw(e: any) {
-					throw e
-				},
-				[Symbol.asyncDispose]: async () => {},
-			} as AsyncGenerator<ApiStreamChunk>
-
-			const createMessageSpy = vi.spyOn(task.api, "createMessage").mockReturnValue(mockStream)
-
-			// Act: initiate an API request
-			const iterator = task.attemptApiRequest(0)
-			await iterator.next() // read first chunk to ensure call happened
-
-			// Assert: metadata includes suppressPreviousResponseId set to true
-			expect(createMessageSpy).toHaveBeenCalled()
-			const callArgs = createMessageSpy.mock.calls[0]
-			// Args: [systemPrompt, cleanConversationHistory, metadata]
-			const metadata = callArgs?.[2]
-			expect(metadata?.suppressPreviousResponseId).toBe(true)
-
-			// The skip flag should be reset after the call
-			expect((task as any).skipPrevResponseIdOnce).toBe(false)
-		})
-	})
 	describe("abortTask", () => {
 		it("should set abort flag and emit TaskAborted event", async () => {
 			const task = new Task({
@@ -1821,5 +1771,200 @@ describe("Cline", () => {
 				consoleErrorSpy.mockRestore()
 			})
 		})
+
+		describe("cancelCurrentRequest", () => {
+			it("should cancel the current HTTP request via AbortController", () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "test task",
+					startTask: false,
+				})
+
+				// Create a real AbortController and spy on its abort method
+				const mockAbortController = new AbortController()
+				const abortSpy = vi.spyOn(mockAbortController, "abort")
+				task.currentRequestAbortController = mockAbortController
+
+				// Spy on console.log
+				const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+
+				// Call cancelCurrentRequest
+				task.cancelCurrentRequest()
+
+				// Verify abort was called on the controller
+				expect(abortSpy).toHaveBeenCalled()
+
+				// Verify the controller was cleared
+				expect(task.currentRequestAbortController).toBeUndefined()
+
+				// Verify logging
+				expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("Aborting current HTTP request"))
+
+				// Restore console.log
+				consoleLogSpy.mockRestore()
+			})
+
+			it("should handle missing AbortController gracefully", () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "test task",
+					startTask: false,
+				})
+
+				// Ensure no controller exists
+				task.currentRequestAbortController = undefined
+
+				// Should not throw when called with no controller
+				expect(() => task.cancelCurrentRequest()).not.toThrow()
+			})
+
+			it("should be called during dispose", () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "test task",
+					startTask: false,
+				})
+
+				// Spy on cancelCurrentRequest
+				const cancelSpy = vi.spyOn(task, "cancelCurrentRequest")
+
+				// Mock other dispose operations
+				vi.spyOn(task.messageQueueService, "removeListener").mockImplementation(
+					() => task.messageQueueService as any,
+				)
+				vi.spyOn(task.messageQueueService, "dispose").mockImplementation(() => {})
+				vi.spyOn(task, "removeAllListeners").mockImplementation(() => task as any)
+
+				// Call dispose
+				task.dispose()
+
+				// Verify cancelCurrentRequest was called
+				expect(cancelSpy).toHaveBeenCalled()
+			})
+		})
+	})
+})
+
+describe("Queued message processing after condense", () => {
+	function createProvider(): any {
+		const storageUri = { fsPath: path.join(os.tmpdir(), "test-storage") }
+		const ctx = {
+			globalState: {
+				get: vi.fn().mockImplementation((_key: keyof GlobalState) => undefined),
+				update: vi.fn().mockResolvedValue(undefined),
+				keys: vi.fn().mockReturnValue([]),
+			},
+			globalStorageUri: storageUri,
+			workspaceState: {
+				get: vi.fn().mockImplementation((_key) => undefined),
+				update: vi.fn().mockResolvedValue(undefined),
+				keys: vi.fn().mockReturnValue([]),
+			},
+			secrets: {
+				get: vi.fn().mockResolvedValue(undefined),
+				store: vi.fn().mockResolvedValue(undefined),
+				delete: vi.fn().mockResolvedValue(undefined),
+			},
+			extensionUri: { fsPath: "/mock/extension/path" },
+			extension: { packageJSON: { version: "1.0.0" } },
+		} as unknown as vscode.ExtensionContext
+
+		const output = {
+			appendLine: vi.fn(),
+			append: vi.fn(),
+			clear: vi.fn(),
+			show: vi.fn(),
+			hide: vi.fn(),
+			dispose: vi.fn(),
+		}
+
+		const provider = new ClineProvider(ctx, output as any, "sidebar", new ContextProxy(ctx)) as any
+		provider.postMessageToWebview = vi.fn().mockResolvedValue(undefined)
+		provider.postStateToWebview = vi.fn().mockResolvedValue(undefined)
+		provider.getState = vi.fn().mockResolvedValue({})
+		return provider
+	}
+
+	const apiConfig: ProviderSettings = {
+		apiProvider: "anthropic",
+		apiModelId: "claude-3-5-sonnet-20241022",
+		apiKey: "test-api-key",
+	} as any
+
+	it("processes queued message after condense completes", async () => {
+		const provider = createProvider()
+		const task = new Task({
+			provider,
+			apiConfiguration: apiConfig,
+			task: "initial task",
+			startTask: false,
+		})
+
+		// Make condense fast + deterministic
+		vi.spyOn(task as any, "getSystemPrompt").mockResolvedValue("system")
+		const submitSpy = vi.spyOn(task, "submitUserMessage").mockResolvedValue(undefined)
+
+		// Queue a message during condensing
+		task.messageQueueService.addMessage("queued text", ["img1.png"])
+
+		// Use fake timers to capture setTimeout(0) in processQueuedMessages
+		vi.useFakeTimers()
+		await task.condenseContext()
+
+		// Flush the microtask that submits the queued message
+		vi.runAllTimers()
+		vi.useRealTimers()
+
+		expect(submitSpy).toHaveBeenCalledWith("queued text", ["img1.png"])
+		expect(task.messageQueueService.isEmpty()).toBe(true)
+	})
+
+	it("does not cross-drain queues between separate tasks", async () => {
+		const providerA = createProvider()
+		const providerB = createProvider()
+
+		const taskA = new Task({
+			provider: providerA,
+			apiConfiguration: apiConfig,
+			task: "task A",
+			startTask: false,
+		})
+		const taskB = new Task({
+			provider: providerB,
+			apiConfiguration: apiConfig,
+			task: "task B",
+			startTask: false,
+		})
+
+		vi.spyOn(taskA as any, "getSystemPrompt").mockResolvedValue("system")
+		vi.spyOn(taskB as any, "getSystemPrompt").mockResolvedValue("system")
+
+		const spyA = vi.spyOn(taskA, "submitUserMessage").mockResolvedValue(undefined)
+		const spyB = vi.spyOn(taskB, "submitUserMessage").mockResolvedValue(undefined)
+
+		taskA.messageQueueService.addMessage("A message")
+		taskB.messageQueueService.addMessage("B message")
+
+		// Condense in task A should only drain A's queue
+		vi.useFakeTimers()
+		await taskA.condenseContext()
+		vi.runAllTimers()
+		vi.useRealTimers()
+
+		expect(spyA).toHaveBeenCalledWith("A message", undefined)
+		expect(spyB).not.toHaveBeenCalled()
+		expect(taskB.messageQueueService.isEmpty()).toBe(false)
+
+		// Now condense in task B should drain B's queue
+		vi.useFakeTimers()
+		await taskB.condenseContext()
+		vi.runAllTimers()
+		vi.useRealTimers()
+
+		expect(spyB).toHaveBeenCalledWith("B message", undefined)
+		expect(taskB.messageQueueService.isEmpty()).toBe(true)
 	})
 })

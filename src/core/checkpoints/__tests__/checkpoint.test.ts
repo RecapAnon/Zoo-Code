@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest"
 import { Task } from "../../task/Task"
 import { ClineProvider } from "../../webview/ClineProvider"
 import { checkpointSave, checkpointRestore, checkpointDiff, getCheckpointService } from "../index"
+import { MessageManager } from "../../message-manager"
 import * as vscode from "vscode"
 
 // Mock vscode
@@ -102,6 +103,7 @@ describe("Checkpoint functionality", () => {
 			overwriteApiConversationHistory: vi.fn(),
 			combineMessages: vi.fn().mockReturnValue([]),
 		}
+		mockTask.messageManager = new MessageManager(mockTask)
 
 		// Update the mock to return our mockCheckpointService
 		const checkpointsModule = await import("../../../services/checkpoints")
@@ -304,7 +306,7 @@ describe("Checkpoint functionality", () => {
 			]
 		})
 
-		it("should show diff for full mode", async () => {
+		it("should show diff for to-current mode", async () => {
 			const mockChanges = [
 				{
 					paths: { absolute: "/test/file.ts", relative: "file.ts" },
@@ -316,7 +318,7 @@ describe("Checkpoint functionality", () => {
 			await checkpointDiff(mockTask, {
 				ts: 4,
 				commitHash: "commit2",
-				mode: "full",
+				mode: "to-current",
 			})
 
 			expect(mockCheckpointService.getDiff).toHaveBeenCalledWith({
@@ -325,7 +327,7 @@ describe("Checkpoint functionality", () => {
 			})
 			expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
 				"vscode.changes",
-				"Changes since task started",
+				"common:errors.checkpoint_diff_to_current",
 				expect.any(Array),
 			)
 		})
@@ -350,7 +352,7 @@ describe("Checkpoint functionality", () => {
 			})
 			expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
 				"vscode.changes",
-				"Changes compare with next checkpoint",
+				"common:errors.checkpoint_diff_with_next",
 				expect.any(Array),
 			)
 		})
@@ -382,10 +384,10 @@ describe("Checkpoint functionality", () => {
 			await checkpointDiff(mockTask, {
 				ts: 4,
 				commitHash: "commit2",
-				mode: "full",
+				mode: "to-current",
 			})
 
-			expect(vscode.window.showInformationMessage).toHaveBeenCalledWith("No changes found.")
+			expect(vscode.window.showInformationMessage).toHaveBeenCalledWith("common:errors.checkpoint_no_changes")
 			expect(vscode.commands.executeCommand).not.toHaveBeenCalled()
 		})
 
@@ -395,7 +397,7 @@ describe("Checkpoint functionality", () => {
 			await checkpointDiff(mockTask, {
 				ts: 4,
 				commitHash: "commit2",
-				mode: "full",
+				mode: "to-current",
 			})
 
 			expect(mockTask.enableCheckpoints).toBe(false)

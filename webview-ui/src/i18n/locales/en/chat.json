@@ -26,7 +26,9 @@
 		"shareSuccessOrganization": "Organization link copied to clipboard",
 		"shareSuccessPublic": "Public link copied to clipboard",
 		"openInCloud": "Open task in Roo Code Cloud",
-		"openInCloudIntro": "Keep monitoring or interacting with Roo from anywhere. Scan, click or copy to open."
+		"openInCloudIntro": "Keep monitoring or interacting with Roo from anywhere. Scan, click or copy to open.",
+		"openApiHistory": "Open API History",
+		"openUiHistory": "Open UI History"
 	},
 	"unpin": "Unpin",
 	"pin": "Pin",
@@ -96,24 +98,17 @@
 		"placeholder": "Edit your message..."
 	},
 	"scrollToBottom": "Scroll to bottom of chat",
-	"about": "Generate, refactor, and debug code with AI assistance. Check out our <DocsLink>documentation</DocsLink> to learn more.",
-	"onboarding": "Your task list in this workspace is empty.",
+	"about": "Roo is a whole AI dev team in your editor",
+	"docs": "Check our <DocsLink>docs</DocsLink> to get started",
+	"onboarding": "What would you like to do?",
 	"rooTips": {
-		"boomerangTasks": {
-			"title": "Task Orchestration",
-			"description": "Split tasks into smaller, manageable parts"
-		},
-		"stickyModels": {
-			"title": "Sticky Models",
-			"description": "Each mode remembers your last used model"
-		},
-		"tools": {
-			"title": "Tools",
-			"description": "Allow the AI to solve problems by browsing the web, running commands, and more"
-		},
 		"customizableModes": {
-			"title": "Customizable Modes",
-			"description": "Specialized personas with their own behaviors and assigned models"
+			"title": "Customizable modes that don't swerve",
+			"description": "Specialized personas that stay on-task and deliver."
+		},
+		"modelAgnostic": {
+			"title": "Bring your own model, no markup or lock-in",
+			"description": "Use your own provider key or even run local inference — Roo doesn't charge for it"
 		}
 	},
 	"selectMode": "Select mode for interaction",
@@ -147,13 +142,26 @@
 		"failed": "API Request Failed",
 		"streaming": "API Request...",
 		"cancelled": "API Request Cancelled",
-		"streamingFailed": "API Streaming Failed"
+		"streamingFailed": "API Streaming Failed",
+		"errorTitle": "API Error {{code}}",
+		"errorMessage": {
+			"docs": "Docs",
+			"400": "The provider couldn't process the request as made. Stop the task and try a different approach.",
+			"401": "Couldn't authenticate with provider. Please check your API key configuration.",
+			"402": "You seem to have run out of funds/credits in your account. Go to your provider and add more to continue.",
+			"403": "Unauthorized. Your API key is valid, but the provider refused to complete this request.",
+			"429": "Too many requests. You're being rate-limited by the provider. Please wait a bit before your next API call.",
+			"500": "Provider server error. Something is wrong on the provider side, there's nothing wrong with your request.",
+			"unknown": "Unknown API error. Please contact Roo Code support."
+		}
 	},
 	"checkpoint": {
 		"regular": "Checkpoint",
 		"initializingWarning": "Still initializing checkpoint... If this takes too long, you can disable checkpoints in <settingsLink>settings</settingsLink> and restart your task.",
 		"menu": {
 			"viewDiff": "View Diff",
+			"viewDiffFromInit": "View All Changes",
+			"viewDiffWithCurrent": "View Changes Since This Checkpoint",
 			"restore": "Restore Checkpoint",
 			"restoreFiles": "Restore Files",
 			"restoreFilesDescription": "Restores your project's files back to a snapshot taken at this point.",
@@ -161,15 +169,25 @@
 			"confirm": "Confirm",
 			"cancel": "Cancel",
 			"cannotUndo": "This action cannot be undone.",
-			"restoreFilesAndTaskDescription": "Restores your project's files back to a snapshot taken at this point and deletes all messages after this point."
+			"restoreFilesAndTaskDescription": "Restores your project's files back to a snapshot taken at this point and deletes all messages after this point.",
+			"more": "More options"
 		},
 		"current": "Current"
 	},
-	"contextCondense": {
-		"title": "Context Condensed",
-		"condensing": "Condensing context...",
-		"errorHeader": "Failed to condense context",
-		"tokens": "tokens"
+	"contextManagement": {
+		"tokens": "tokens",
+		"condensation": {
+			"title": "Context Condensed",
+			"inProgress": "Condensing context...",
+			"errorHeader": "Failed to condense context"
+		},
+		"truncation": {
+			"title": "Context Truncated",
+			"inProgress": "Truncating context...",
+			"messagesRemoved": "{{count}} message removed",
+			"messagesRemoved_other": "{{count}} messages removed",
+			"description": "Older messages were removed from the conversation to stay within the context window limit. This is a fast but less context-preserving approach compared to condensation."
+		}
 	},
 	"instructions": {
 		"wantsToFetch": "Roo wants to fetch detailed instructions to assist with the current task"
@@ -189,8 +207,6 @@
 		"wantsToGenerateImageProtected": "Roo wants to generate an image in a protected location",
 		"didGenerateImage": "Roo generated an image",
 		"wantsToCreate": "Roo wants to create a new file",
-		"wantsToSearchReplace": "Roo wants to search and replace in this file",
-		"didSearchReplace": "Roo performed search and replace on this file",
 		"wantsToInsert": "Roo wants to insert content into this file",
 		"wantsToInsertWithLineNumber": "Roo wants to insert content into this file at line {{lineNumber}}",
 		"wantsToInsertAtEnd": "Roo wants to append content to the end of this file"
@@ -302,6 +318,18 @@
 			"selectModel": "Select <code>roo/code-supernova</code> from the Roo Code Cloud provider in Settings to get started.",
 			"goToSettingsButton": "Go to Settings"
 		},
+		"release": {
+			"heading": "What's New:",
+			"contextRewind": "Improved context condensing now lets you restore the full previous context when rewinding to a checkpoint",
+			"rooProvider": "Roo Code Cloud provider now preserves reasoning content and defaults to native tools for better performance"
+		},
+		"cloudAgents": {
+			"heading": "New in the Cloud:",
+			"specialized": "Introducing <bold>Explainer</bold>, <bold>Planner</bold>, and <bold>Coder</bold> - three specialized cloud agents to enhance your workflows.",
+			"description": "The agents work together in the cloud and can be triggered from the web or through Slack.",
+			"tryButton": "Try Cloud Agents"
+		},
+		"careers": "Also, <careersLink>we're hiring!</careersLink>",
 		"socialLinks": "Join us on <xLink>X</xLink>, <discordLink>Discord</discordLink>, or <redditLink>r/RooCode</redditLink> 🚀"
 	},
 	"reasoning": {
@@ -314,6 +342,7 @@
 		"countdownDisplay": "{{count}}s"
 	},
 	"browser": {
+		"session": "Browser Session",
 		"rooWantsToUse": "Roo wants to use the browser",
 		"consoleLogs": "Console Logs",
 		"noNewLogs": "(No new logs)",
@@ -326,12 +355,14 @@
 		},
 		"sessionStarted": "Browser Session Started",
 		"actions": {
-			"title": "Browse Action: ",
+			"title": "Browser Action: ",
 			"launch": "Launch browser at {{url}}",
 			"click": "Click ({{coordinate}})",
 			"type": "Type \"{{text}}\"",
+			"press": "Press {{key}}",
 			"scrollDown": "Scroll down",
 			"scrollUp": "Scroll up",
+			"hover": "Hover ({{coordinate}})",
 			"close": "Close browser"
 		}
 	},
@@ -407,5 +438,12 @@
 		"problems": "Problems",
 		"terminal": "Terminal",
 		"url": "Paste URL to fetch contents"
+	},
+	"todo": {
+		"partial": "{{completed}} of {{total}} to-dos done",
+		"complete": "{{total}} to-dos done",
+		"updated": "Updated the to-do list",
+		"completed": "Completed",
+		"started": "Started"
 	}
 }

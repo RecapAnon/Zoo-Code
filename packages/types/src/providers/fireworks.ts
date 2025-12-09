@@ -3,6 +3,7 @@ import type { ModelInfo } from "../model.js"
 export type FireworksModelId =
 	| "accounts/fireworks/models/kimi-k2-instruct"
 	| "accounts/fireworks/models/kimi-k2-instruct-0905"
+	| "accounts/fireworks/models/minimax-m2"
 	| "accounts/fireworks/models/qwen3-235b-a22b-instruct-2507"
 	| "accounts/fireworks/models/qwen3-coder-480b-a35b-instruct"
 	| "accounts/fireworks/models/deepseek-r1-0528"
@@ -10,6 +11,7 @@ export type FireworksModelId =
 	| "accounts/fireworks/models/deepseek-v3p1"
 	| "accounts/fireworks/models/glm-4p5"
 	| "accounts/fireworks/models/glm-4p5-air"
+	| "accounts/fireworks/models/glm-4p6"
 	| "accounts/fireworks/models/gpt-oss-20b"
 	| "accounts/fireworks/models/gpt-oss-120b"
 
@@ -21,6 +23,7 @@ export const fireworksModels = {
 		contextWindow: 262144,
 		supportsImages: false,
 		supportsPromptCache: true,
+		supportsNativeTools: true,
 		inputPrice: 0.6,
 		outputPrice: 2.5,
 		cacheReadsPrice: 0.15,
@@ -32,16 +35,29 @@ export const fireworksModels = {
 		contextWindow: 128000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.6,
 		outputPrice: 2.5,
 		description:
 			"Kimi K2 is a state-of-the-art mixture-of-experts (MoE) language model with 32 billion activated parameters and 1 trillion total parameters. Trained with the Muon optimizer, Kimi K2 achieves exceptional performance across frontier knowledge, reasoning, and coding tasks while being meticulously optimized for agentic capabilities.",
+	},
+	"accounts/fireworks/models/minimax-m2": {
+		maxTokens: 4096,
+		contextWindow: 204800,
+		supportsImages: false,
+		supportsPromptCache: false,
+		supportsNativeTools: true,
+		inputPrice: 0.3,
+		outputPrice: 1.2,
+		description:
+			"MiniMax M2 is a high-performance language model with 204.8K context window, optimized for long-context understanding and generation tasks.",
 	},
 	"accounts/fireworks/models/qwen3-235b-a22b-instruct-2507": {
 		maxTokens: 32768,
 		contextWindow: 256000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.22,
 		outputPrice: 0.88,
 		description: "Latest Qwen3 thinking model, competitive against the best closed source models in Jul 2025.",
@@ -51,6 +67,7 @@ export const fireworksModels = {
 		contextWindow: 256000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.45,
 		outputPrice: 1.8,
 		description: "Qwen3's most agentic code model to date.",
@@ -60,6 +77,7 @@ export const fireworksModels = {
 		contextWindow: 160000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 3,
 		outputPrice: 8,
 		description:
@@ -70,6 +88,7 @@ export const fireworksModels = {
 		contextWindow: 128000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.9,
 		outputPrice: 0.9,
 		description:
@@ -80,6 +99,7 @@ export const fireworksModels = {
 		contextWindow: 163840,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.56,
 		outputPrice: 1.68,
 		description:
@@ -90,6 +110,7 @@ export const fireworksModels = {
 		contextWindow: 128000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.55,
 		outputPrice: 2.19,
 		description:
@@ -100,16 +121,29 @@ export const fireworksModels = {
 		contextWindow: 128000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.55,
 		outputPrice: 2.19,
 		description:
 			"Z.ai GLM-4.5-Air with 106B total parameters and 12B active parameters. Features unified reasoning, coding, and intelligent agent capabilities.",
+	},
+	"accounts/fireworks/models/glm-4p6": {
+		maxTokens: 25344,
+		contextWindow: 198000,
+		supportsImages: false,
+		supportsPromptCache: false,
+		supportsNativeTools: true,
+		inputPrice: 0.55,
+		outputPrice: 2.19,
+		description:
+			"Z.ai GLM-4.6 is an advanced coding model with exceptional performance on complex programming tasks. Features improved reasoning capabilities and enhanced code generation quality, making it ideal for software development workflows.",
 	},
 	"accounts/fireworks/models/gpt-oss-20b": {
 		maxTokens: 16384,
 		contextWindow: 128000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.07,
 		outputPrice: 0.3,
 		description:
@@ -120,6 +154,7 @@ export const fireworksModels = {
 		contextWindow: 128000,
 		supportsImages: false,
 		supportsPromptCache: false,
+		supportsNativeTools: true,
 		inputPrice: 0.15,
 		outputPrice: 0.6,
 		description:

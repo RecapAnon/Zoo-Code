@@ -19,9 +19,7 @@
 	"views.contextMenu.label": "Roo Code",
 	"views.terminalMenu.label": "Roo Code",
 	"views.sidebar.name": "Roo Code",
-	"command.mcpServers.title": "Servidores MCP",
-	"command.prompts.title": "Modos",
-	"command.history.title": "Historial",
+	"command.history.title": "Historial de Tareas",
 	"command.marketplace.title": "Mercado",
 	"command.openInEditor.title": "Abrir en Editor",
 	"command.cloud.title": "Cloud",
@@ -39,8 +37,10 @@
 	"settings.customStoragePath.description": "Ruta de almacenamiento personalizada. Dejar vacío para usar la ubicación predeterminada. Admite rutas absolutas (ej. 'D:\\RooCodeStorage')",
 	"settings.enableCodeActions.description": "Habilitar correcciones rápidas de Roo Code.",
 	"settings.autoImportSettingsPath.description": "Ruta a un archivo de configuración de RooCode para importar automáticamente al iniciar la extensión. Admite rutas absolutas y rutas relativas al directorio de inicio (por ejemplo, '~/Documents/roo-code-settings.json'). Dejar vacío para desactivar la importación automática.",
+	"settings.maximumIndexedFilesForFileSearch.description": "Número máximo de archivos a indexar para la función de búsqueda de archivos @. Valores más altos proporcionan mejores resultados de búsqueda en proyectos grandes pero pueden usar más memoria. Por defecto: 10.000.",
 	"settings.useAgentRules.description": "Habilita la carga de archivos AGENTS.md para reglas específicas del agente (ver https://agent-rules.org/)",
 	"settings.apiRequestTimeout.description": "Tiempo máximo en segundos de espera para las respuestas de la API (0 = sin tiempo de espera, 1-3600s, por defecto: 600s). Se recomiendan valores más altos para proveedores locales como LM Studio y Ollama que puedan necesitar más tiempo de procesamiento.",
 	"settings.newTaskRequireTodos.description": "Requerir el parámetro todos al crear nuevas tareas con la herramienta new_task",
-	"settings.codeIndex.embeddingBatchSize.description": "El tamaño del lote para operaciones de embedding durante la indexación de código. Ajusta esto según los límites de tu proveedor de API. Por defecto es 60."
+	"settings.codeIndex.embeddingBatchSize.description": "El tamaño del lote para operaciones de embedding durante la indexación de código. Ajusta esto según los límites de tu proveedor de API. Por defecto es 60.",
+	"settings.debug.description": "Activa el modo de depuración para mostrar botones adicionales para ver el historial de conversación de API y los mensajes de la interfaz de usuario como JSON embellecido en archivos temporales."
 }

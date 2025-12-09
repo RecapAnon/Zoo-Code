@@ -3,8 +3,6 @@ import {
 	mainlandZAiModels,
 	internationalZAiDefaultModelId,
 	mainlandZAiDefaultModelId,
-	type InternationalZAiModelId,
-	type MainlandZAiModelId,
 	type ModelInfo,
 	ZAI_DEFAULT_TEMPERATURE,
 	zaiApiLineConfigs,
@@ -22,7 +20,7 @@ export class ZAiHandler extends BaseOpenAiCompatibleProvider<string> {
 
 		super({
 			...options,
-			providerName: "Z AI",
+			providerName: "Z.ai",
 			baseURL: zaiApiLineConfigs[options.zaiApiLine ?? "international_coding"].baseUrl,
 			apiKey: options.zaiApiKey ?? "not-provided",
 			defaultProviderModelId: defaultModelId,

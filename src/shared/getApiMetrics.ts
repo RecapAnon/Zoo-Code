@@ -1,4 +1,4 @@
-import type { TokenUsage, ClineMessage } from "@roo-code/types"
+import type { TokenUsage, ToolUsage, ToolName, ClineMessage } from "@roo-code/types"
 
 export type ParsedApiReqStartedTextType = {
 	tokensIn: number
@@ -80,15 +80,12 @@ export function getApiMetrics(messages: ClineMessage[]) {
 		if (message.type === "say" && message.say === "api_req_started" && message.text) {
 			try {
 				const parsedText: ParsedApiReqStartedTextType = JSON.parse(message.text)
-				const { tokensIn, tokensOut, cacheWrites, cacheReads, apiProtocol } = parsedText
+				const { tokensIn, tokensOut } = parsedText
 
-				// Calculate context tokens based on API protocol.
-				if (apiProtocol === "anthropic") {
-					result.contextTokens = (tokensIn || 0) + (tokensOut || 0) + (cacheWrites || 0) + (cacheReads || 0)
-				} else {
-					// For OpenAI (or when protocol is not specified).
-					result.contextTokens = (tokensIn || 0) + (tokensOut || 0)
-				}
+				// Since tokensIn now stores TOTAL input tokens (including cache tokens),
+				// we no longer need to add cacheWrites and cacheReads separately.
+				// This applies to both Anthropic and OpenAI protocols.
+				result.contextTokens = (tokensIn || 0) + (tokensOut || 0)
 			} catch (error) {
 				console.error("Error parsing JSON:", error)
 				continue
@@ -125,4 +122,35 @@ export function hasTokenUsageChanged(current: TokenUsage, snapshot?: TokenUsage)
 	]
 
 	return keysToCompare.some((key) => current[key] !== snapshot[key])
+}
+
+/**
+ * Check if tool usage has changed by comparing attempts and failures.
+ * @param current - Current tool usage data
+ * @param snapshot - Previous snapshot to compare against (undefined treated as empty)
+ * @returns true if any tool's attempts/failures have changed between current and snapshot
+ */
+export function hasToolUsageChanged(current: ToolUsage, snapshot?: ToolUsage): boolean {
+	// Treat undefined snapshot as empty object for consistent comparison
+	const effectiveSnapshot = snapshot ?? {}
+
+	const currentKeys = Object.keys(current) as ToolName[]
+	const snapshotKeys = Object.keys(effectiveSnapshot) as ToolName[]
+
+	// Check if number of tools changed
+	if (currentKeys.length !== snapshotKeys.length) {
+		return true
+	}
+
+	// Check if any tool's stats changed
+	return currentKeys.some((key) => {
+		const currentTool = current[key]
+		const snapshotTool = effectiveSnapshot[key]
+
+		if (!snapshotTool || !currentTool) {
+			return true
+		}
+
+		return currentTool.attempts !== snapshotTool.attempts || currentTool.failures !== snapshotTool.failures
+	})
 }

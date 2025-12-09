@@ -1,8 +1,5 @@
 // npx vitest run src/api/providers/__tests__/zai.spec.ts
 
-// Mock vscode first to avoid import errors
-vitest.mock("vscode", () => ({}))
-
 import OpenAI from "openai"
 import { Anthropic } from "@anthropic-ai/sdk"
 
@@ -202,7 +199,7 @@ describe("ZAiHandler", () => {
 			const errorMessage = "Z AI API error"
 			mockCreate.mockRejectedValueOnce(new Error(errorMessage))
 			await expect(handler.completePrompt("test prompt")).rejects.toThrow(
-				`Z AI completion error: ${errorMessage}`,
+				`Z.ai completion error: ${errorMessage}`,
 			)
 		})
 
@@ -252,7 +249,7 @@ describe("ZAiHandler", () => {
 			const firstChunk = await stream.next()
 
 			expect(firstChunk.done).toBe(false)
-			expect(firstChunk.value).toEqual({ type: "usage", inputTokens: 10, outputTokens: 20 })
+			expect(firstChunk.value).toMatchObject({ type: "usage", inputTokens: 10, outputTokens: 20 })
 		})
 
 		it("createMessage should pass correct parameters to Z AI client", async () => {
@@ -280,10 +277,13 @@ describe("ZAiHandler", () => {
 			const messageGenerator = handlerWithModel.createMessage(systemPrompt, messages)
 			await messageGenerator.next()
 
+			// Centralized 20% cap should apply to OpenAI-compatible providers like Z AI
+			const expectedMaxTokens = Math.min(modelInfo.maxTokens, Math.ceil(modelInfo.contextWindow * 0.2))
+
 			expect(mockCreate).toHaveBeenCalledWith(
 				expect.objectContaining({
 					model: modelId,
-					max_tokens: modelInfo.maxTokens,
+					max_tokens: expectedMaxTokens,
 					temperature: ZAI_DEFAULT_TEMPERATURE,
 					messages: expect.arrayContaining([{ role: "system", content: systemPrompt }]),
 					stream: true,

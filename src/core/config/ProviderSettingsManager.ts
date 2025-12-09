@@ -11,10 +11,12 @@ import {
 	DEFAULT_CONSECUTIVE_MISTAKE_LIMIT,
 	getModelId,
 	type ProviderName,
+	isProviderName,
 } from "@roo-code/types"
 import { TelemetryService } from "@roo-code/telemetry"
 
 import { Mode, modes } from "../../shared/modes"
+import { buildApiHandler } from "../../api"
 
 // Type-safe model migrations mapping
 type ModelMigrations = {
@@ -527,6 +529,31 @@ export class ProviderSettingsManager {
 				for (const name in configs) {
 					// Avoid leaking properties from other providers.
 					configs[name] = discriminatedProviderSettingsWithIdSchema.parse(configs[name])
+
+					// If it has no apiProvider, skip filtering
+					if (!configs[name].apiProvider) {
+						continue
+					}
+
+					// Try to build an API handler to get model information
+					try {
+						const apiHandler = buildApiHandler(configs[name])
+						const modelInfo = apiHandler.getModel().info
+
+						// Check if the model supports reasoning budgets
+						const supportsReasoningBudget =
+							modelInfo.supportsReasoningBudget || modelInfo.requiredReasoningBudget
+
+						// If the model doesn't support reasoning budgets, remove the token fields
+						if (!supportsReasoningBudget) {
+							delete configs[name].modelMaxTokens
+							delete configs[name].modelMaxThinkingTokens
+						}
+					} catch (error) {
+						// If we can't build the API handler or get model info, skip filtering
+						// to avoid accidental data loss from incomplete configurations
+						console.warn(`Skipping token field filtering for config '${name}': ${error}`)
+					}
 				}
 				return profiles
 			})
@@ -572,7 +599,10 @@ export class ProviderSettingsManager {
 
 			const apiConfigs = Object.entries(providerProfiles.apiConfigs).reduce(
 				(acc, [key, apiConfig]) => {
-					const result = providerSettingsWithIdSchema.safeParse(apiConfig)
+					// First, sanitize invalid apiProvider values before parsing
+					// This handles removed providers (like "glama") gracefully
+					const sanitizedConfig = this.sanitizeProviderConfig(apiConfig)
+					const result = providerSettingsWithIdSchema.safeParse(sanitizedConfig)
 					return result.success ? { ...acc, [key]: result.data } : acc
 				},
 				{} as Record<string, ProviderSettingsWithId>,
@@ -594,6 +624,32 @@ export class ProviderSettingsManager {
 
 			throw new Error(`Failed to read provider profiles from secrets: ${error}`)
 		}
+	}
+
+	/**
+	 * Sanitizes a provider config by resetting invalid/removed apiProvider values.
+	 * This handles cases where a user had a provider selected that was later removed
+	 * from the extension (e.g., "glama").
+	 */
+	private sanitizeProviderConfig(apiConfig: unknown): unknown {
+		if (typeof apiConfig !== "object" || apiConfig === null) {
+			return apiConfig
+		}
+
+		const config = apiConfig as Record<string, unknown>
+
+		// Check if apiProvider is set and if it's still valid
+		if (config.apiProvider !== undefined && !isProviderName(config.apiProvider)) {
+			console.log(
+				`[ProviderSettingsManager] Sanitizing invalid provider "${config.apiProvider}" - resetting to undefined`,
+			)
+			// Return a new config object without the invalid apiProvider
+			// This effectively resets the profile so the user can select a valid provider
+			const { apiProvider, ...restConfig } = config
+			return restConfig
+		}
+
+		return apiConfig
 	}
 
 	private async store(providerProfiles: ProviderProfiles) {

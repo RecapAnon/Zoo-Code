@@ -26,7 +26,9 @@
 		"shareSuccessOrganization": "組織リンクをクリップボードにコピーしました",
 		"shareSuccessPublic": "公開リンクをクリップボードにコピーしました",
 		"openInCloud": "Roo Code Cloudでタスクを開く",
-		"openInCloudIntro": "どこからでもRooの監視や操作を続けられます。スキャン、クリック、またはコピーして開いてください。"
+		"openInCloudIntro": "どこからでもRooの監視や操作を続けられます。スキャン、クリック、またはコピーして開いてください。",
+		"openApiHistory": "API履歴を開く",
+		"openUiHistory": "UI履歴を開く"
 	},
 	"unpin": "ピン留めを解除",
 	"pin": "ピン留め",
@@ -85,24 +87,17 @@
 		"tooltip": "現在の操作をキャンセル"
 	},
 	"scrollToBottom": "チャットの最下部にスクロール",
-	"about": "AI支援でコードを生成、リファクタリング、デバッグします。詳細については、<DocsLink>ドキュメント</DocsLink>をご覧ください。",
-	"onboarding": "最新のエージェント型コーディング能力の進歩により、複雑なソフトウェア開発タスクをステップバイステップで処理できます。ファイルの作成や編集、複雑なプロジェクトの探索、ブラウザの使用、ターミナルコマンドの実行（許可後）を可能にするツールにより、コード補完や技術サポート以上の方法であなたをサポートできます。MCPを使用して新しいツールを作成し、自分の能力を拡張することもできます。",
+	"about": "Roo Codeは、エディタに常駐するAI開発チームです。",
+	"docs": "詳細については、<DocsLink>ドキュメント</DocsLink>をご確認ください。",
+	"onboarding": "このワークスペースのタスクリストは空です。",
 	"rooTips": {
-		"boomerangTasks": {
-			"title": "タスクオーケストレーション",
-			"description": "タスクをより小さく、管理しやすい部分に分割します。"
-		},
-		"stickyModels": {
-			"title": "スティッキーモード",
-			"description": "各モードは、最後に使用したモデルを記憶しています"
-		},
-		"tools": {
-			"title": "ツール",
-			"description": "AIがWebの閲覧、コマンドの実行などによって問題を解決できるようにします。"
-		},
 		"customizableModes": {
 			"title": "カスタマイズ可能なモード",
-			"description": "独自の動作と割り当てられたモデルを持つ専門的なペルソナ"
+			"description": "タスクに集中し、成果を出す専門のペルソナ。"
+		},
+		"modelAgnostic": {
+			"title": "独自のモデルを持ち込む",
+			"description": "独自のプロバイダーキーを使用したり、ローカルで推論を実行したりできます — マークアップ、ロックイン、制限はありません"
 		}
 	},
 	"selectMode": "対話モードを選択",
@@ -141,13 +136,27 @@
 		"failed": "APIリクエスト失敗",
 		"streaming": "APIリクエスト...",
 		"cancelled": "APIリクエストキャンセル",
-		"streamingFailed": "APIストリーミング失敗"
+		"streamingFailed": "APIストリーミング失敗",
+		"errorTitle": "APIエラー {{code}}",
+		"errorMessage": {
+			"docs": "ドキュメント",
+			"400": "プロバイダーはリクエストをそのまま処理できませんでした。タスクを停止して別のアプローチを試してください。",
+			"401": "プロバイダーで認証できませんでした。API キーの設定を確認してください。",
+			"402": "アカウントの資金/クレジットが不足しているようです。プロバイダーに移動してさらに追加してください。",
+			"403": "認可されていません。API キーは有効ですが、プロバイダーがこのリクエストの完了を拒否しました。",
+			"429": "リクエストが多すぎます。プロバイダーによってレート制限されています。次の API 呼び出しの前にお待ちください。",
+			"500": "プロバイダー サーバー エラー。プロバイダー側に問題があり、リクエスト自体に問題はありません。",
+			"unknown": "不明な API エラー。Roo Code のサポートにお問い合わせください。"
+		}
 	},
 	"checkpoint": {
 		"regular": "チェックポイント",
 		"initializingWarning": "チェックポイントの初期化中... 時間がかかりすぎる場合は、<settingsLink>設定</settingsLink>でチェックポイントを無効にしてタスクを再開できます。",
 		"menu": {
 			"viewDiff": "差分を表示",
+			"more": "その他のオプション",
+			"viewDiffFromInit": "すべての変更を表示",
+			"viewDiffWithCurrent": "このチェックポイント以降の変更を表示",
 			"restore": "チェックポイントを復元",
 			"restoreFiles": "ファイルを復元",
 			"restoreFilesDescription": "この時点で撮影されたスナップショットにプロジェクトのファイルを復元します。",
@@ -274,11 +283,20 @@
 		"thinking": "考え中",
 		"seconds": "{{count}}秒"
 	},
-	"contextCondense": {
-		"title": "コンテキスト要約",
-		"condensing": "コンテキストを圧縮中...",
-		"errorHeader": "コンテキストの圧縮に失敗しました",
-		"tokens": "トークン"
+	"contextManagement": {
+		"tokens": "トークン",
+		"condensation": {
+			"title": "コンテキスト要約",
+			"inProgress": "コンテキストを圧縮中...",
+			"errorHeader": "コンテキストの圧縮に失敗しました"
+		},
+		"truncation": {
+			"title": "コンテキスト切り詰め",
+			"inProgress": "コンテキストを切り詰め中...",
+			"messagesRemoved": "{{count}}件のメッセージを削除",
+			"messagesRemoved_other": "{{count}}件のメッセージを削除",
+			"description": "コンテキストウィンドウの制限内に収めるため、古いメッセージが会話から削除されました。これは圧縮と比較して高速ですが、コンテキストの保持性が低いアプローチです。"
+		}
 	},
 	"followUpSuggest": {
 		"copyToInput": "入力欄にコピー（またはShift + クリック）",
@@ -294,9 +312,22 @@
 			"selectModel": "設定で Roo Code Cloud プロバイダーから <code>roo/code-supernova</code> を選択して開始してください。",
 			"goToSettingsButton": "設定に移動"
 		},
+		"release": {
+			"heading": "このバージョンの新機能:",
+			"contextRewind": "改善されたコンテキスト圧縮により、チェックポイントに巻き戻すときに以前の完全なコンテキストを復元できるようになりました",
+			"rooProvider": "Roo Code Cloud プロバイダーはレジーニングコンテンツを保持し、デフォルトでネイティブ ツールを使用してパフォーマンスを向上させます"
+		},
+		"cloudAgents": {
+			"heading": "クラウドの新機能:",
+			"specialized": "<bold>Explainer</bold>、<bold>Planner</bold>、<bold>Coder</bold> の 3 つの専門クラウドエージェントを紹介します。ワークフローを強化します。",
+			"description": "エージェントはクラウドで連携して動作し、Web または Slack からトリガーできます。",
+			"tryButton": "クラウドエージェントを試す"
+		},
+		"careers": "また、<careersLink>採用中です！</careersLink>",
 		"socialLinks": "<xLink>X</xLink>、<discordLink>Discord</discordLink>、または<redditLink>r/RooCode</redditLink>でフォローしてください 🚀"
 	},
 	"browser": {
+		"session": "ブラウザセッション",
 		"rooWantsToUse": "Rooはブラウザを使用したい",
 		"consoleLogs": "コンソールログ",
 		"noNewLogs": "(新しいログはありません)",
@@ -309,12 +340,14 @@
 		},
 		"sessionStarted": "ブラウザセッション開始",
 		"actions": {
-			"title": "ブラウザアクション: ",
+			"title": "ブラウザ操作: ",
 			"launch": "{{url}} でブラウザを起動",
 			"click": "クリック ({{coordinate}})",
 			"type": "入力 \"{{text}}\"",
+			"press": "{{key}}を押す",
 			"scrollDown": "下にスクロール",
 			"scrollUp": "上にスクロール",
+			"hover": "ホバー ({{coordinate}})",
 			"close": "ブラウザを閉じる"
 		}
 	},
@@ -413,5 +446,12 @@
 	"slashCommand": {
 		"wantsToRun": "Rooはスラッシュコマンドを実行したい",
 		"didRun": "Rooはスラッシュコマンドを実行しました"
+	},
+	"todo": {
+		"partial": "{{total}}件中{{completed}}件のTo-Doが完了",
+		"complete": "{{total}}件のTo-Doが完了",
+		"updated": "To-Doリストを更新しました",
+		"completed": "完了",
+		"started": "開始"
 	}
 }
