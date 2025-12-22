@@ -10,7 +10,6 @@ import {
 	DEFAULT_CONSECUTIVE_MISTAKE_LIMIT,
 	openRouterDefaultModelId,
 	requestyDefaultModelId,
-	glamaDefaultModelId,
 	unboundDefaultModelId,
 	litellmDefaultModelId,
 	openAiNativeDefaultModelId,
@@ -76,7 +75,6 @@ import {
 	DeepSeek,
 	Doubao,
 	Gemini,
-	Glama,
 	Groq,
 	HuggingFace,
 	IOIntelligence,
@@ -142,7 +140,7 @@ const ApiOptions = ({
 	setErrorMessage,
 }: ApiOptionsProps) => {
 	const { t } = useAppTranslation()
-	const { organizationAllowList, cloudIsAuthenticated } = useExtensionState()
+	const { organizationAllowList, cloudIsAuthenticated, claudeCodeIsAuthenticated } = useExtensionState()
 
 	const [customHeaders, setCustomHeaders] = useState<[string, string][]>(() => {
 		const headers = apiConfiguration?.openAiHeaders || {}
@@ -306,7 +304,7 @@ const ApiOptions = ({
 
 			// It would be much easier to have a single attribute that stores
 			// the modelId, but we have a separate attribute for each of
-			// OpenRouter, Glama, Unbound, and Requesty.
+			// OpenRouter, Unbound, and Requesty.
 			// If you switch to one of these providers and the corresponding
 			// modelId is not set then you immediately end up in an error state.
 			// To address that we set the modelId to the default value for th
@@ -340,7 +338,6 @@ const ApiOptions = ({
 			> = {
 				deepinfra: { field: "deepInfraModelId", default: deepInfraDefaultModelId },
 				openrouter: { field: "openRouterModelId", default: openRouterDefaultModelId },
-				glama: { field: "glamaModelId", default: glamaDefaultModelId },
 				unbound: { field: "unboundModelId", default: unboundDefaultModelId },
 				requesty: { field: "requestyModelId", default: requestyDefaultModelId },
 				litellm: { field: "litellmModelId", default: litellmDefaultModelId },
@@ -423,8 +420,9 @@ const ApiOptions = ({
 	// 3. Native fallback
 	const defaultProtocol = selectedModelInfo?.defaultToolProtocol || TOOL_PROTOCOL.NATIVE
 
-	// Show the tool protocol selector when model supports native tools
-	const showToolProtocolSelector = selectedModelInfo?.supportsNativeTools === true
+	// Show the tool protocol selector when model supports native tools.
+	// For OpenAI Compatible providers we always show it so users can force XML/native explicitly.
+	const showToolProtocolSelector = selectedProvider === "openai" || selectedModelInfo?.supportsNativeTools === true
 
 	// Convert providers to SearchableSelect options
 	const providerOptions = useMemo(() => {
@@ -533,18 +531,6 @@ const ApiOptions = ({
 				/>
 			)}
 
-			{selectedProvider === "glama" && (
-				<Glama
-					apiConfiguration={apiConfiguration}
-					setApiConfigurationField={setApiConfigurationField}
-					routerModels={routerModels}
-					uriScheme={uriScheme}
-					organizationAllowList={organizationAllowList}
-					modelValidationError={modelValidationError}
-					simplifySettings={fromWelcomeView}
-				/>
-			)}
-
 			{selectedProvider === "unbound" && (
 				<Unbound
 					apiConfiguration={apiConfiguration}
@@ -581,6 +567,7 @@ const ApiOptions = ({
 					apiConfiguration={apiConfiguration}
 					setApiConfigurationField={setApiConfigurationField}
 					simplifySettings={fromWelcomeView}
+					claudeCodeIsAuthenticated={claudeCodeIsAuthenticated}
 				/>
 			)}
 
@@ -793,7 +780,8 @@ const ApiOptions = ({
 				<Featherless apiConfiguration={apiConfiguration} setApiConfigurationField={setApiConfigurationField} />
 			)}
 
-			{selectedProviderModels.length > 0 && (
+			{/* Skip generic model picker for claude-code since it has its own in ClaudeCode.tsx */}
+			{selectedProviderModels.length > 0 && selectedProvider !== "claude-code" && (
 				<>
 					<div>
 						<label className="block font-medium mb-1">{t("settings:providers.model")}</label>
