@@ -1,5 +1,40 @@
 # Roo Code Changelog
 
+## [3.37.1] - 2025-12-23
+
+![3.37.1 Release - Tool Fixes and Provider Improvements](/releases/3.37.1-release.png)
+
+- Fix: Send native tool definitions by default for OpenAI to ensure proper tool usage (PR #10314 by @hannesrudolph)
+- Fix: Preserve reasoning_details shape to prevent malformed responses when processing model output (PR #10313 by @hannesrudolph)
+- Fix: Drain queued messages while waiting for ask to prevent message loss (PR #10315 by @hannesrudolph)
+- Feat: Add grace retry for empty assistant messages to improve reliability (PR #10297 by @hannesrudolph)
+- Feat: Enable mergeToolResultText for all OpenAI-compatible providers for better tool result handling (PR #10299 by @hannesrudolph)
+- Feat: Enable mergeToolResultText for Roo Code Cloud provider (PR #10301 by @hannesrudolph)
+- Feat: Strengthen native tool-use guidance in prompts for improved model behavior (PR #10311 by @hannesrudolph)
+- UX: Account-centric signup flow for improved onboarding experience (PR #10306 by @brunobergher)
+
+## [3.37.0] - 2025-12-22
+
+![3.37.0 Release - Custom Tool Calling](/releases/3.37.0-release.png)
+
+- Add MiniMax M2.1 and improve environment_details handling for Minimax thinking models (PR #10284 by @hannesrudolph)
+- Add GLM-4.7 model with thinking mode support for Zai provider (PR #10282 by @hannesrudolph)
+- Add experimental custom tool calling - define custom tools that integrate seamlessly with your AI workflow (PR #10083 by @cte)
+- Deprecate XML tool protocol selection and force native tool format for new tasks (PR #10281 by @daniel-lxs)
+- Fix: Emit tool_call_end events in OpenAI handler when streaming ends (#10275 by @torxeon, PR #10280 by @daniel-lxs)
+- Fix: Emit tool_call_end events in BaseOpenAiCompatibleProvider (PR #10293 by @hannesrudolph)
+- Fix: Disable strict mode for MCP tools to preserve optional parameters (PR #10220 by @daniel-lxs)
+- Fix: Move array-specific properties into anyOf variant in normalizeToolSchema (PR #10276 by @daniel-lxs)
+- Fix: Add CRLF line ending normalization to search_replace and search_and_replace tools (PR #10288 by @hannesrudolph)
+- Fix: Add graceful fallback for model parsing in Chutes provider (PR #10279 by @hannesrudolph)
+- Fix: Enable Requesty refresh models with credentials (PR #10273 by @daniel-lxs)
+- Fix: Improve reasoning_details accumulation and serialization (PR #10285 by @hannesrudolph)
+- Fix: Preserve reasoning_content in condense summary for DeepSeek-reasoner (PR #10292 by @hannesrudolph)
+- Refactor Zai provider to merge environment_details into tool result instead of system message (PR #10289 by @hannesrudolph)
+- Remove parallel_tool_calls parameter from litellm provider (PR #10274 by @roomote)
+- Add Cloud Team page with comprehensive team management features (PR #10267 by @roomote)
+- Add message log deduper utility for evals (PR #10286 by @hannesrudolph)
+
 ## [3.36.16] - 2025-12-19
 
 - Fix: Normalize tool schemas for VS Code LM API to resolve error 400 when using VS Code Language Model API providers (PR #10221 by @hannesrudolph)
