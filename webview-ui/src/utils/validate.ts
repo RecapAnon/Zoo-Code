@@ -146,6 +146,11 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				return i18next.t("settings:validation.qwenCodeOauthPath")
 			}
 			break
+		case "codex-oauth":
+			if (!apiConfiguration.codexOauthPath) {
+				return i18next.t("settings:validation.codexOauthPath")
+			}
+			break
 		case "vercel-ai-gateway":
 			if (!apiConfiguration.vercelAiGatewayApiKey) {
 				return i18next.t("settings:validation.apiKey")

@@ -16,6 +16,7 @@ import {
 	anthropicDefaultModelId,
 	doubaoDefaultModelId,
 	claudeCodeDefaultModelId,
+	codexOauthDefaultModelId,
 	qwenCodeDefaultModelId,
 	geminiDefaultModelId,
 	deepSeekDefaultModelId,
@@ -70,6 +71,7 @@ import {
 	Cerebras,
 	Chutes,
 	ClaudeCode,
+	CodexOAuth,
 	DeepSeek,
 	Doubao,
 	Gemini,
@@ -342,6 +344,7 @@ const ApiOptions = ({
 				anthropic: { field: "apiModelId", default: anthropicDefaultModelId },
 				cerebras: { field: "apiModelId", default: cerebrasDefaultModelId },
 				"claude-code": { field: "apiModelId", default: claudeCodeDefaultModelId },
+				"codex-oauth": { field: "apiModelId", default: codexOauthDefaultModelId },
 				"qwen-code": { field: "apiModelId", default: qwenCodeDefaultModelId },
 				"openai-native": { field: "apiModelId", default: openAiNativeDefaultModelId },
 				gemini: { field: "apiModelId", default: geminiDefaultModelId },
@@ -560,6 +563,14 @@ const ApiOptions = ({
 					setApiConfigurationField={setApiConfigurationField}
 					simplifySettings={fromWelcomeView}
 					claudeCodeIsAuthenticated={claudeCodeIsAuthenticated}
+				/>
+			)}
+
+			{selectedProvider === "codex-oauth" && (
+				<CodexOAuth
+					apiConfiguration={apiConfiguration}
+					setApiConfigurationField={setApiConfigurationField}
+					simplifySettings={fromWelcomeView}
 				/>
 			)}
 
@@ -789,7 +800,7 @@ const ApiOptions = ({
 
 								// Clear reasoning effort when switching models to allow the new model's default to take effect
 								// This is especially important for GPT-5 models which default to "medium"
-								if (selectedProvider === "openai-native") {
+								if (selectedProvider === "openai-native" || selectedProvider === "codex-oauth") {
 									setApiConfigurationField("reasoningEffort", undefined)
 								}
 							}}>

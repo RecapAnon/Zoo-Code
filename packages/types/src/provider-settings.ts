@@ -8,6 +8,7 @@ import {
 	bedrockModels,
 	cerebrasModels,
 	claudeCodeModels,
+	codexOauthModels,
 	deepSeekModels,
 	doubaoModels,
 	featherlessModels,
@@ -123,6 +124,7 @@ export const providerNames = [
 	"baseten",
 	"cerebras",
 	"claude-code",
+	"codex-oauth",
 	"doubao",
 	"deepseek",
 	"featherless",
@@ -201,6 +203,10 @@ const anthropicSchema = apiModelIdProviderModelSchema.extend({
 })
 
 const claudeCodeSchema = apiModelIdProviderModelSchema.extend({})
+
+const codexOauthSchema = apiModelIdProviderModelSchema.extend({
+	codexOauthPath: z.string().optional(),
+})
 
 const openRouterSchema = baseProviderSettingsSchema.extend({
 	openRouterApiKey: z.string().optional(),
@@ -430,6 +436,7 @@ const defaultSchema = z.object({
 export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProvider", [
 	anthropicSchema.merge(z.object({ apiProvider: z.literal("anthropic") })),
 	claudeCodeSchema.merge(z.object({ apiProvider: z.literal("claude-code") })),
+	codexOauthSchema.merge(z.object({ apiProvider: z.literal("codex-oauth") })),
 	openRouterSchema.merge(z.object({ apiProvider: z.literal("openrouter") })),
 	bedrockSchema.merge(z.object({ apiProvider: z.literal("bedrock") })),
 	vertexSchema.merge(z.object({ apiProvider: z.literal("vertex") })),
@@ -472,6 +479,7 @@ export const providerSettingsSchema = z.object({
 	apiProvider: providerNamesSchema.optional(),
 	...anthropicSchema.shape,
 	...claudeCodeSchema.shape,
+	...codexOauthSchema.shape,
 	...openRouterSchema.shape,
 	...bedrockSchema.shape,
 	...vertexSchema.shape,
@@ -561,6 +569,7 @@ export const isTypicalProvider = (key: unknown): key is TypicalProvider =>
 export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	anthropic: "apiModelId",
 	"claude-code": "apiModelId",
+	"codex-oauth": "apiModelId",
 	openrouter: "openRouterModelId",
 	bedrock: "apiModelId",
 	vertex: "apiModelId",
@@ -647,6 +656,7 @@ export const MODELS_BY_PROVIDER: Record<
 		models: Object.keys(cerebrasModels),
 	},
 	"claude-code": { id: "claude-code", label: "Claude Code", models: Object.keys(claudeCodeModels) },
+	"codex-oauth": { id: "codex-oauth", label: "Codex OAuth", models: Object.keys(codexOauthModels) },
 	deepseek: {
 		id: "deepseek",
 		label: "DeepSeek",

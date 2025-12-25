@@ -19,6 +19,7 @@ import {
 	vscodeLlmDefaultModelId,
 	claudeCodeModels,
 	normalizeClaudeCodeModelId,
+	codexOauthModels,
 	sambaNovaModels,
 	doubaoModels,
 	internationalZAiModels,
@@ -340,6 +341,11 @@ function getSelectedModel({
 			const normalizedId = normalizeClaudeCodeModelId(rawId)
 			const info = claudeCodeModels[normalizedId]
 			return { id: normalizedId, info: { ...openAiModelInfoSaneDefaults, ...info } }
+		}
+		case "codex-oauth": {
+			const id = apiConfiguration.apiModelId ?? defaultModelId
+			const info = codexOauthModels[id as keyof typeof codexOauthModels]
+			return { id, info }
 		}
 		case "cerebras": {
 			const id = apiConfiguration.apiModelId ?? defaultModelId
