@@ -735,7 +735,8 @@
 		"tts": {
 			"label": "Enable text-to-speech",
 			"description": "When enabled, Zoo will read aloud its responses using text-to-speech.",
-			"speedLabel": "Speed"
+			"speedLabel": "Speed",
+			"providerLabel": "Provider"
 		}
 	},
 	"contextManagement": {

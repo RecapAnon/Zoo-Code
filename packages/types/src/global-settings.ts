@@ -171,11 +171,17 @@ export const globalSettingsSchema = z.object({
 		.optional(),
 
 	ttsEnabled: z.boolean().optional(),
-	ttsProvider: z.enum(["default", "google-cloud", "azure"]).optional(),
+	ttsProvider: z.enum(["default", "google-cloud", "azure", "openai"]).optional(),
 	ttsSpeed: z.number().optional(),
 	ttsSelectedVoice: z.string().optional(),
 	ttsGoogleVoice: z.string().optional(),
 	ttsAzureVoice: z.string().optional(),
+	ttsOpenAiVoice: z.string().optional(),
+	openAiTtsBaseUrl: z.string().optional(),
+	openAiTtsApiKey: z.string().optional(),
+	azureTtsApiKey: z.string().optional(),
+	googleCloudTtsApiKey: z.string().optional(),
+	azureTtsRegion: z.string().optional(),
 	ttsMonthlyUsage: z
 		.object({
 			google: z.number().optional(),
@@ -324,6 +330,7 @@ export const GLOBAL_SECRET_KEYS = [
 	"googleCloudTtsApiKey", // For Google Cloud TTS
 	"azureTtsApiKey", // For Microsoft Azure TTS
 	"azureTtsRegion", // Azure TTS region/endpoint
+	"openAiTtsApiKey", // For OpenAI TTS
 ] as const
 
 // Type for the actual secret storage keys

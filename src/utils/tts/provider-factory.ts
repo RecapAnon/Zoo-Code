@@ -2,6 +2,7 @@ import { TtsProviderInterface } from "./types"
 import { DefaultTtsProvider } from "./providers/default-tts"
 import { GoogleCloudTtsProvider } from "./providers/google-cloud-tts"
 import { AzureTtsProvider } from "./providers/azure-tts"
+import { OpenAiTtsProvider } from "./providers/openai-tts"
 import { ContextProxy } from "../../core/config/ContextProxy"
 
 export class TtsProviderFactory {
@@ -25,6 +26,7 @@ export class TtsProviderFactory {
 		this.providers.set("default", new DefaultTtsProvider(this.contextProxy))
 		this.providers.set("google-cloud", new GoogleCloudTtsProvider(this.contextProxy))
 		this.providers.set("azure", new AzureTtsProvider(this.contextProxy))
+		this.providers.set("openai", new OpenAiTtsProvider(this.contextProxy))
 	}
 
 	/**
@@ -80,7 +82,7 @@ export class TtsProviderFactory {
 		const providerName = this.contextProxy.getValue("ttsProvider" as any) || "default"
 
 		// Only track usage for cloud providers
-		if (providerName === "google-cloud" || providerName === "azure") {
+		if (providerName === "google-cloud" || providerName === "azure" || providerName === "openai") {
 			const usageKey =
 				`tts${providerName.charAt(0).toUpperCase() + providerName.slice(1).replace("-", "")}MonthlyUsage` as any
 			const currentUsage = this.contextProxy.getValue(usageKey) || { month: currentMonth, characters: 0 }
@@ -105,7 +107,7 @@ export class TtsProviderFactory {
 	getMonthlyUsage(providerName: string): { month: string; characters: number } {
 		const currentMonth = new Date().toISOString().slice(0, 7)
 
-		if (providerName === "google-cloud" || providerName === "azure") {
+		if (providerName === "google-cloud" || providerName === "azure" || providerName === "openai") {
 			const usageKey =
 				`tts${providerName.charAt(0).toUpperCase() + providerName.slice(1).replace("-", "")}MonthlyUsage` as any
 			const usage = this.contextProxy.getValue(usageKey) || { month: currentMonth, characters: 0 }
