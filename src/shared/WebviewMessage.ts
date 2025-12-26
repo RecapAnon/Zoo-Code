@@ -82,6 +82,8 @@ export interface WebviewMessage {
 		| "ttsGoogleVoice"
 		| "ttsAzureVoice"
 		| "ttsAzureRegion"
+		| "ttsOpenAiVoice"
+		| "openAiTtsBaseUrl"
 		| "getTtsVoices"
 		| "getTtsUsageStats"
 		| "checkTtsProviderConfigured"

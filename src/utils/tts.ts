@@ -189,6 +189,8 @@ const playWithCloudProvider = async (
 		voiceId = contextProxy.getValue("ttsGoogleVoice" as any) || "en-US-Wavenet-D"
 	} else if (providerName === "azure") {
 		voiceId = contextProxy.getValue("ttsAzureVoice" as any) || "en-US-JennyNeural"
+	} else if (providerName === "openai") {
+		voiceId = contextProxy.getValue("ttsOpenAiVoice" as any) || "alloy"
 	}
 
 	options.onStart?.()

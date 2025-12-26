@@ -173,7 +173,16 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 		screenshotQuality,
 		soundEnabled,
 		ttsEnabled,
+		ttsProvider,
 		ttsSpeed,
+		ttsAzureVoice,
+		ttsGoogleVoice,
+		ttsOpenAiVoice,
+		openAiTtsBaseUrl,
+		openAiTtsApiKey,
+		azureTtsApiKey,
+		googleCloudTtsApiKey,
+		azureTtsRegion,
 		soundVolume,
 		telemetrySetting,
 		terminalOutputLineLimit,
@@ -370,7 +379,16 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 					soundEnabled: soundEnabled ?? true,
 					soundVolume: soundVolume ?? 0.5,
 					ttsEnabled,
+					ttsProvider,
 					ttsSpeed,
+					ttsAzureVoice,
+					ttsGoogleVoice,
+					ttsOpenAiVoice,
+					openAiTtsBaseUrl,
+					openAiTtsApiKey,
+					azureTtsApiKey,
+					googleCloudTtsApiKey,
+					azureTtsRegion,
 					diffEnabled: diffEnabled ?? true,
 					enableCheckpoints: enableCheckpoints ?? false,
 					checkpointTimeout: checkpointTimeout ?? DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
@@ -756,6 +774,15 @@ const SettingsView = forwardRef<SettingsViewRef, SettingsViewProps>(({ onDone, t
 						<NotificationSettings
 							ttsEnabled={ttsEnabled}
 							ttsSpeed={ttsSpeed}
+							ttsProvider={ttsProvider}
+							ttsAzureVoice={ttsAzureVoice}
+							ttsGoogleVoice={ttsGoogleVoice}
+							ttsOpenAiVoice={ttsOpenAiVoice}
+							openAiTtsBaseUrl={openAiTtsBaseUrl}
+							openAiTtsApiKey={openAiTtsApiKey}
+							azureTtsApiKey={azureTtsApiKey}
+							googleCloudTtsApiKey={googleCloudTtsApiKey}
+							azureTtsRegion={azureTtsRegion}
 							soundEnabled={soundEnabled}
 							soundVolume={soundVolume}
 							setCachedStateField={setCachedStateField}

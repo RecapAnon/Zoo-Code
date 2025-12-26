@@ -1437,7 +1437,7 @@ export const webviewMessageHandler = async (
 		case "ttsProvider":
 			// Handle TTS provider selection
 			if (message.text) {
-				await updateGlobalState("ttsProvider", message.text as "default" | "google-cloud" | "azure")
+				await updateGlobalState("ttsProvider", message.text as "default" | "google-cloud" | "azure" | "openai")
 				await provider.postStateToWebview()
 			}
 			break
@@ -1459,6 +1459,18 @@ export const webviewMessageHandler = async (
 			// Handle Azure region selection (stored as a secret)
 			if (message.text) {
 				await provider.contextProxy.storeSecret("azureTtsRegion", message.text)
+				await provider.postStateToWebview()
+			}
+			break
+		case "ttsOpenAiVoice":
+			if (message.text) {
+				await updateGlobalState("ttsOpenAiVoice", message.text)
+				await provider.postStateToWebview()
+			}
+			break
+		case "openAiTtsBaseUrl":
+			if (message.text) {
+				await updateGlobalState("openAiTtsBaseUrl", message.text)
 				await provider.postStateToWebview()
 			}
 			break

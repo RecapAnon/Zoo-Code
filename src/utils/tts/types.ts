@@ -1,4 +1,4 @@
-export type TtsProvider = "default" | "google" | "azure"
+export type TtsProvider = "default" | "google" | "azure" | "openai"
 
 export interface TtsVoice {
 	id: string
@@ -63,5 +63,9 @@ export const TTS_PRICING = {
 		standard: 4.0, // $4.00 per 1M characters for standard voices
 		neural: 15.0, // $15.00 per 1M characters for neural voices
 		freeMonthlyCharacters: 500_000, // 0.5M free characters per month
+	},
+	openai: {
+		standard: 15.0, // $15.00 per 1M characters
+		freeMonthlyCharacters: 0,
 	},
 }
