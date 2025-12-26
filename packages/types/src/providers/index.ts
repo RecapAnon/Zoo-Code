@@ -9,6 +9,7 @@ export * from "./doubao.js"
 export * from "./featherless.js"
 export * from "./fireworks.js"
 export * from "./gemini.js"
+export * from "./gemini-oauth.js"
 export * from "./groq.js"
 export * from "./huggingface.js"
 export * from "./io-intelligence.js"
@@ -44,6 +45,7 @@ import { doubaoDefaultModelId } from "./doubao.js"
 import { featherlessDefaultModelId } from "./featherless.js"
 import { fireworksDefaultModelId } from "./fireworks.js"
 import { geminiDefaultModelId } from "./gemini.js"
+import { geminiOauthDefaultModelId } from "./gemini-oauth.js"
 import { groqDefaultModelId } from "./groq.js"
 import { ioIntelligenceDefaultModelId } from "./io-intelligence.js"
 import { litellmDefaultModelId } from "./lite-llm.js"
@@ -102,6 +104,8 @@ export function getProviderDefaultModelId(
 			return vertexDefaultModelId
 		case "gemini":
 			return geminiDefaultModelId
+		case "gemini-oauth":
+			return geminiOauthDefaultModelId
 		case "deepseek":
 			return deepSeekDefaultModelId
 		case "doubao":

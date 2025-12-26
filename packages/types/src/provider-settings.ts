@@ -14,6 +14,7 @@ import {
 	featherlessModels,
 	fireworksModels,
 	geminiModels,
+	geminiOauthModels,
 	groqModels,
 	ioIntelligenceModels,
 	mistralModels,
@@ -130,6 +131,7 @@ export const providerNames = [
 	"featherless",
 	"fireworks",
 	"gemini",
+	"gemini-oauth",
 	"gemini-cli",
 	"groq",
 	"mistral",
@@ -292,6 +294,11 @@ const geminiSchema = apiModelIdProviderModelSchema.extend({
 	enableGrounding: z.boolean().optional(),
 })
 
+const geminiOauthSchema = apiModelIdProviderModelSchema.extend({
+	geminiOauthPath: z.string().optional(),
+	geminiOauthProjectId: z.string().optional(),
+})
+
 const geminiCliSchema = apiModelIdProviderModelSchema.extend({
 	geminiCliOAuthPath: z.string().optional(),
 	geminiCliProjectId: z.string().optional(),
@@ -445,6 +452,7 @@ export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProv
 	vsCodeLmSchema.merge(z.object({ apiProvider: z.literal("vscode-lm") })),
 	lmStudioSchema.merge(z.object({ apiProvider: z.literal("lmstudio") })),
 	geminiSchema.merge(z.object({ apiProvider: z.literal("gemini") })),
+	geminiOauthSchema.merge(z.object({ apiProvider: z.literal("gemini-oauth") })),
 	geminiCliSchema.merge(z.object({ apiProvider: z.literal("gemini-cli") })),
 	openAiNativeSchema.merge(z.object({ apiProvider: z.literal("openai-native") })),
 	mistralSchema.merge(z.object({ apiProvider: z.literal("mistral") })),
@@ -488,6 +496,7 @@ export const providerSettingsSchema = z.object({
 	...vsCodeLmSchema.shape,
 	...lmStudioSchema.shape,
 	...geminiSchema.shape,
+	...geminiOauthSchema.shape,
 	...geminiCliSchema.shape,
 	...openAiNativeSchema.shape,
 	...mistralSchema.shape,
@@ -577,6 +586,7 @@ export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	ollama: "ollamaModelId",
 	lmstudio: "lmStudioModelId",
 	gemini: "apiModelId",
+	"gemini-oauth": "apiModelId",
 	"gemini-cli": "apiModelId",
 	mistral: "apiModelId",
 	moonshot: "apiModelId",
@@ -677,6 +687,11 @@ export const MODELS_BY_PROVIDER: Record<
 		id: "gemini",
 		label: "Google Gemini",
 		models: Object.keys(geminiModels),
+	},
+	"gemini-oauth": {
+		id: "gemini-oauth",
+		label: "Gemini OAuth",
+		models: Object.keys(geminiOauthModels),
 	},
 	groq: { id: "groq", label: "Groq", models: Object.keys(groqModels) },
 	"io-intelligence": {

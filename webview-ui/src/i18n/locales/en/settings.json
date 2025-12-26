@@ -918,7 +918,8 @@
 		"modelNotAllowed": "Model '{{model}}' is not allowed for provider '{{provider}}' by your organization",
 		"profileInvalid": "This profile contains a provider or model that is not allowed by your organization",
 		"qwenCodeOauthPath": "You must provide a valid OAuth credentials path.",
-		"codexOauthPath": "You must provide a valid OAuth credentials path."
+		"codexOauthPath": "You must provide a valid OAuth credentials path.",
+		"geminiOauthPath": "You must provide a valid OAuth credentials path."
 	},
 	"placeholders": {
 		"apiKey": "Enter API Key...",

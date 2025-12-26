@@ -178,6 +178,25 @@ describe("Model Validation Functions", () => {
 			)
 			expect(result).toBeUndefined() // Should exclude model-specific org errors
 		})
+
+		it("returns error when gemini oauth path is missing", () => {
+			const config: ProviderSettings = {
+				apiProvider: "gemini-oauth",
+			}
+
+			const result = validateApiConfigurationExcludingModelErrors(config, mockRouterModels, allowAllOrganization)
+			expect(result).toBe("settings:validation.geminiOauthPath")
+		})
+
+		it("accepts gemini oauth config when path is provided", () => {
+			const config: ProviderSettings = {
+				apiProvider: "gemini-oauth",
+				geminiOauthPath: "~/.roo/gemini-oauth.json",
+			}
+
+			const result = validateApiConfigurationExcludingModelErrors(config, mockRouterModels, allowAllOrganization)
+			expect(result).toBeUndefined()
+		})
 	})
 })
 

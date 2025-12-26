@@ -23,6 +23,11 @@ function isThoughtSignatureContentBlock(block: ExtendedContentBlockParam): block
 	return block.type === "thoughtSignature"
 }
 
+function deriveToolNameFromId(toolUseId: string): string | undefined {
+	const match = /^(.*)-\d+$/.exec(toolUseId)
+	return match?.[1]
+}
+
 export function convertAnthropicContentToGemini(
 	content: ExtendedAnthropicContent,
 	options?: { includeThoughtSignatures?: boolean; toolIdToName?: Map<string, string> },
@@ -87,7 +92,7 @@ export function convertAnthropicContentToGemini(
 				// Get tool name from the map (built from tool_use blocks in message history).
 				// The map must contain the tool name - if it doesn't, this indicates a bug
 				// where the conversation history is incomplete or tool_use blocks are missing.
-				const toolName = toolIdToName?.get(block.tool_use_id)
+				const toolName = toolIdToName?.get(block.tool_use_id) ?? deriveToolNameFromId(block.tool_use_id)
 				if (!toolName) {
 					throw new Error(
 						`Unable to find tool name for tool_use_id "${block.tool_use_id}". ` +

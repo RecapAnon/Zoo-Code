@@ -43,6 +43,7 @@ import {
 	MiniMaxHandler,
 	BasetenHandler,
 	CodexOAuthHandler,
+	GeminiOAuthHandler,
 } from "./providers"
 import { NativeOllamaHandler } from "./providers/native-ollama"
 
@@ -142,6 +143,8 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			return new LmStudioHandler(options)
 		case "gemini":
 			return new GeminiHandler(options)
+		case "gemini-oauth":
+			return new GeminiOAuthHandler(options)
 		case "openai-native":
 			return new OpenAiNativeHandler(options)
 		case "deepseek":

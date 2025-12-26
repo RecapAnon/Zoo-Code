@@ -20,6 +20,7 @@ import {
 	claudeCodeModels,
 	normalizeClaudeCodeModelId,
 	codexOauthModels,
+	geminiOauthModels,
 	sambaNovaModels,
 	doubaoModels,
 	internationalZAiModels,
@@ -345,6 +346,11 @@ function getSelectedModel({
 		case "codex-oauth": {
 			const id = apiConfiguration.apiModelId ?? defaultModelId
 			const info = codexOauthModels[id as keyof typeof codexOauthModels]
+			return { id, info }
+		}
+		case "gemini-oauth": {
+			const id = apiConfiguration.apiModelId ?? defaultModelId
+			const info = geminiOauthModels[id as keyof typeof geminiOauthModels]
 			return { id, info }
 		}
 		case "cerebras": {

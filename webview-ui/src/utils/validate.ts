@@ -151,6 +151,11 @@ function validateModelsAndKeysProvided(apiConfiguration: ProviderSettings): stri
 				return i18next.t("settings:validation.codexOauthPath")
 			}
 			break
+		case "gemini-oauth":
+			if (!apiConfiguration.geminiOauthPath) {
+				return i18next.t("settings:validation.geminiOauthPath")
+			}
+			break
 		case "vercel-ai-gateway":
 			if (!apiConfiguration.vercelAiGatewayApiKey) {
 				return i18next.t("settings:validation.apiKey")

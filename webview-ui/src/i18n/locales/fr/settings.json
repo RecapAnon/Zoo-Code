@@ -909,7 +909,8 @@
 		"providerNotAllowed": "Le fournisseur '{{provider}}' n'est pas autorisé par votre organisation",
 		"modelNotAllowed": "Le modèle '{{model}}' n'est pas autorisé pour le fournisseur '{{provider}}' par votre organisation",
 		"profileInvalid": "Ce profil contient un fournisseur ou un modèle qui n'est pas autorisé par votre organisation",
-		"qwenCodeOauthPath": "Tu dois fournir un chemin valide pour les identifiants OAuth"
+		"qwenCodeOauthPath": "Tu dois fournir un chemin valide pour les identifiants OAuth",
+		"geminiOauthPath": "Tu dois fournir un chemin valide pour les identifiants OAuth"
 	},
 	"placeholders": {
 		"apiKey": "Saisissez la clé API...",

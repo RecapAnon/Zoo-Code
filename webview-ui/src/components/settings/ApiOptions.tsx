@@ -17,6 +17,7 @@ import {
 	doubaoDefaultModelId,
 	claudeCodeDefaultModelId,
 	codexOauthDefaultModelId,
+	geminiOauthDefaultModelId,
 	qwenCodeDefaultModelId,
 	geminiDefaultModelId,
 	deepSeekDefaultModelId,
@@ -72,6 +73,7 @@ import {
 	Chutes,
 	ClaudeCode,
 	CodexOAuth,
+	GeminiOAuth,
 	DeepSeek,
 	Doubao,
 	Gemini,
@@ -345,6 +347,7 @@ const ApiOptions = ({
 				cerebras: { field: "apiModelId", default: cerebrasDefaultModelId },
 				"claude-code": { field: "apiModelId", default: claudeCodeDefaultModelId },
 				"codex-oauth": { field: "apiModelId", default: codexOauthDefaultModelId },
+				"gemini-oauth": { field: "apiModelId", default: geminiOauthDefaultModelId },
 				"qwen-code": { field: "apiModelId", default: qwenCodeDefaultModelId },
 				"openai-native": { field: "apiModelId", default: openAiNativeDefaultModelId },
 				gemini: { field: "apiModelId", default: geminiDefaultModelId },
@@ -568,6 +571,14 @@ const ApiOptions = ({
 
 			{selectedProvider === "codex-oauth" && (
 				<CodexOAuth
+					apiConfiguration={apiConfiguration}
+					setApiConfigurationField={setApiConfigurationField}
+					simplifySettings={fromWelcomeView}
+				/>
+			)}
+
+			{selectedProvider === "gemini-oauth" && (
+				<GeminiOAuth
 					apiConfiguration={apiConfiguration}
 					setApiConfigurationField={setApiConfigurationField}
 					simplifySettings={fromWelcomeView}
@@ -800,7 +811,11 @@ const ApiOptions = ({
 
 								// Clear reasoning effort when switching models to allow the new model's default to take effect
 								// This is especially important for GPT-5 models which default to "medium"
-								if (selectedProvider === "openai-native" || selectedProvider === "codex-oauth") {
+								if (
+									selectedProvider === "openai-native" ||
+									selectedProvider === "codex-oauth" ||
+									selectedProvider === "gemini-oauth"
+								) {
 									setApiConfigurationField("reasoningEffort", undefined)
 								}
 							}}>
