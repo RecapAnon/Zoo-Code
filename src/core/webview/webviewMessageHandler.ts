@@ -2260,25 +2260,6 @@ export const webviewMessageHandler = async (
 				})
 			}
 			break
-		case "humanRelayResponse":
-			if (message.requestId && message.text) {
-				vscode.commands.executeCommand(getCommand("handleHumanRelayResponse"), {
-					requestId: message.requestId,
-					text: message.text,
-					cancelled: false,
-				})
-			}
-			break
-
-		case "humanRelayCancel":
-			if (message.requestId) {
-				vscode.commands.executeCommand(getCommand("handleHumanRelayResponse"), {
-					requestId: message.requestId,
-					cancelled: true,
-				})
-			}
-			break
-
 		case "telemetrySetting": {
 			const telemetrySetting = message.text as TelemetrySetting
 			const previousSetting = getGlobalState("telemetrySetting") || "unset"
