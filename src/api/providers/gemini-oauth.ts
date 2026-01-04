@@ -29,6 +29,9 @@ const OAUTH_TOKEN_BUFFER_MS = 30_000
 const CODE_ASSIST_BASE_URL = "https://cloudcode-pa.googleapis.com"
 const CODE_ASSIST_VERSION = "v1internal"
 
+const GEMINI_OAUTH_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+const GEMINI_OAUTH_SCOPES = "https://www.googleapis.com/auth/cloud-platform"
+
 const GEMINI_CLI_USER_AGENT = "google-api-nodejs-client/9.15.1"
 const GEMINI_CLI_API_CLIENT = "gl-node/22.17.0"
 const GEMINI_CLI_CLIENT_METADATA = "ideType=IDE_UNSPECIFIED,platform=PLATFORM_UNSPECIFIED,pluginType=GEMINI"
@@ -38,8 +41,8 @@ interface GeminiOAuthTokenPayload {
 	client_id?: string
 	client_secret?: string
 	refresh_token?: string
-	expiry?: string
 	expiry_date?: number
+	last_refresh?: string
 }
 
 interface GeminiOAuthCredentials {
@@ -70,18 +73,16 @@ function getGeminiCachedCredentialPath(customPath?: string): string {
 	return path.join(os.homedir(), ROO_DIR, GEMINI_OAUTH_CREDENTIAL_FILENAME)
 }
 
-function parseExpiry(expiry?: string, expiryDate?: number): number | null {
+function parseExpiry(expiryDate?: number): number | null {
 	if (typeof expiryDate === "number") {
 		return expiryDate
 	}
-	if (!expiry) return null
-	const value = Date.parse(expiry)
-	return Number.isNaN(value) ? null : value
+	return null
 }
 
 function isTokenValid(token?: GeminiOAuthTokenPayload): boolean {
 	if (!token) return false
-	const expiry = parseExpiry(token.expiry, token.expiry_date)
+	const expiry = parseExpiry(token.expiry_date)
 	if (!expiry) return false
 	return Date.now() < expiry - OAUTH_TOKEN_BUFFER_MS
 }
@@ -94,10 +95,16 @@ function getClientCredentials(credentials: GeminiOAuthCredentials): { clientId: 
 	}
 	return { clientId, clientSecret }
 }
+function objectToUrlEncoded(data: Record<string, string>): string {
+	return Object.keys(data)
+		.map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
+		.join("&")
+}
 
 export class GeminiOAuthHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: GeminiOAuthHandlerOptions
 	private credentials: GeminiOAuthCredentials | null = null
+	private refreshPromise: Promise<GeminiOAuthCredentials> | null = null
 	private lastThoughtSignature?: string
 	private lastResponseId?: string
 	private readonly providerName = "Gemini"
@@ -105,6 +112,91 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 	constructor(options: GeminiOAuthHandlerOptions) {
 		super()
 		this.options = options
+	}
+
+	private async doRefreshAccessToken(credentials: GeminiOAuthCredentials): Promise<GeminiOAuthCredentials> {
+		if (!credentials.token.refresh_token) {
+			throw new Error("No refresh token available in credentials.")
+		}
+		const clientCreds = getClientCredentials(credentials)
+		if (!clientCreds) {
+			throw new Error("No client credentials available.")
+		}
+
+		const bodyData = {
+			grant_type: "refresh_token",
+			refresh_token: credentials.token.refresh_token,
+			client_id: clientCreds.clientId,
+			client_secret: clientCreds.clientSecret,
+			scope: GEMINI_OAUTH_SCOPES,
+		}
+
+		const response = await fetch(GEMINI_OAUTH_TOKEN_ENDPOINT, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+				Accept: "application/json",
+			},
+			body: objectToUrlEncoded(bodyData),
+		})
+
+		if (!response.ok) {
+			const errorText = await response.text()
+			throw new Error(`Token refresh failed: ${response.status} ${response.statusText}. Response: ${errorText}`)
+		}
+
+		const tokenData = await response.json()
+
+		if (tokenData.error) {
+			throw new Error(`Token refresh failed: ${tokenData.error} - ${tokenData.error_description}`)
+		}
+
+		// Update the in-memory credentials directly
+		this.credentials = {
+			...credentials,
+			token: {
+				...credentials.token,
+				access_token: tokenData.access_token,
+				refresh_token: tokenData.refresh_token || credentials.token.refresh_token,
+				expiry_date: Date.now() + tokenData.expires_in * 1000,
+				last_refresh: new Date().toISOString(),
+			},
+		}
+
+		const filePath = getGeminiCachedCredentialPath(this.options.geminiOauthPath)
+		try {
+			await fs.writeFile(filePath, JSON.stringify(this.credentials, null, 2))
+		} catch (error) {
+			console.error("Failed to save refreshed credentials:", error)
+		}
+
+		return this.credentials
+	}
+	private async callApiWithRetry<T>(apiCall: () => Promise<T>): Promise<T> {
+		try {
+			return await apiCall()
+		} catch (error: any) {
+			if (error.status === 401) {
+				if (this.credentials) {
+					this.credentials = await this.refreshAccessToken(this.credentials)
+				}
+				return await apiCall()
+			}
+			throw error
+		}
+	}
+	private async refreshAccessToken(credentials: GeminiOAuthCredentials): Promise<GeminiOAuthCredentials> {
+		if (this.refreshPromise) {
+			return this.refreshPromise
+		}
+
+		this.refreshPromise = this.doRefreshAccessToken(credentials)
+
+		try {
+			return await this.refreshPromise
+		} finally {
+			this.refreshPromise = null
+		}
 	}
 
 	private async loadCachedGeminiCredentials(): Promise<GeminiOAuthCredentials> {
@@ -139,7 +231,11 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		}
 
 		if (!isTokenValid(token)) {
-			throw new Error("Gemini OAuth token expired. Refresh it using the official Gemini CLI.")
+			if (this.refreshPromise) {
+				this.credentials = await this.refreshPromise
+			} else {
+				this.credentials = await this.refreshAccessToken(this.credentials)
+			}
 		}
 
 		return this.credentials
@@ -467,11 +563,13 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 
 		const url = `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:streamGenerateContent?alt=sse`
 		try {
-			const response = await fetch(url, {
-				method: "POST",
-				headers: this.getAuthHeaders(true),
-				body: JSON.stringify(envelope),
-			})
+			const response = await this.callApiWithRetry(() =>
+				fetch(url, {
+					method: "POST",
+					headers: this.getAuthHeaders(true),
+					body: JSON.stringify(envelope),
+				}),
+			)
 
 			if (!response.ok || !response.body) {
 				const errorText = await response.text()
@@ -521,11 +619,13 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 
 		const url = `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:generateContent`
 		try {
-			const response = await fetch(url, {
-				method: "POST",
-				headers: this.getAuthHeaders(false),
-				body: JSON.stringify(envelope),
-			})
+			const response = await this.callApiWithRetry(() =>
+				fetch(url, {
+					method: "POST",
+					headers: this.getAuthHeaders(false),
+					body: JSON.stringify(envelope),
+				}),
+			)
 
 			if (!response.ok) {
 				const errorText = await response.text()
@@ -563,7 +663,6 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 			throw error
 		}
 	}
-
 	override async countTokens(content: Anthropic.Messages.ContentBlockParam[]): Promise<number> {
 		const credentials = await this.ensureAuthenticated()
 		const projectId = this.getProjectId(credentials)
@@ -577,11 +676,13 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		const envelope = { request }
 		const url = `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:countTokens`
 
-		const response = await fetch(url, {
-			method: "POST",
-			headers: this.getAuthHeaders(false),
-			body: JSON.stringify(envelope),
-		})
+		const response = await this.callApiWithRetry(() =>
+			fetch(url, {
+				method: "POST",
+				headers: this.getAuthHeaders(false),
+				body: JSON.stringify(envelope),
+			}),
+		)
 
 		if (!response.ok) {
 			const errorText = await response.text()
@@ -663,7 +764,7 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		cacheReadTokens?: number
 		reasoningTokens?: number
 	}) {
-		let inputPrice = info.inputPrice
+		/* let inputPrice = info.inputPrice
 		let outputPrice = info.outputPrice
 		let cacheReadsPrice = info.cacheReadsPrice
 
@@ -690,6 +791,8 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		const inputCost = (uncachedInputTokens / 1_000_000) * inputPrice
 		const outputCost = (billedOutputTokens / 1_000_000) * outputPrice
 		const cacheReadsCost = (cacheReadTokens / 1_000_000) * cacheReadsPrice
-		return inputCost + outputCost + cacheReadsCost
+		return inputCost + outputCost + cacheReadsCost */
+		// NOTE: OAuth is billed monthly.
+		return 0
 	}
 }
