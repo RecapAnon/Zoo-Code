@@ -334,6 +334,254 @@ describe("getKeepMessagesWithToolBlocks", () => {
 		expect(result.toolUseBlocksToPreserve).toHaveLength(1)
 		expect(result.reasoningBlocksToPreserve).toHaveLength(0)
 	})
+
+	it("should preserve tool_use when tool_result is in 2nd kept message and tool_use is 2 messages before boundary", () => {
+		const toolUseBlock = {
+			type: "tool_use" as const,
+			id: "toolu_second_kept",
+			name: "read_file",
+			input: { path: "test.txt" },
+		}
+		const toolResultBlock = {
+			type: "tool_result" as const,
+			tool_use_id: "toolu_second_kept",
+			content: "file contents",
+		}
+
+		const messages: ApiMessage[] = [
+			{ role: "user", content: "Hello", ts: 1 },
+			{ role: "assistant", content: "Let me help", ts: 2 },
+			{
+				role: "assistant",
+				content: [{ type: "text" as const, text: "Reading file..." }, toolUseBlock],
+				ts: 3,
+			},
+			{ role: "user", content: "Some other message", ts: 4 },
+			{ role: "assistant", content: "First kept message", ts: 5 },
+			{
+				role: "user",
+				content: [toolResultBlock, { type: "text" as const, text: "Continue" }],
+				ts: 6,
+			},
+			{ role: "assistant", content: "Third kept message", ts: 7 },
+		]
+
+		const result = getKeepMessagesWithToolBlocks(messages, 3)
+
+		// keepMessages should be the last 3 messages (ts: 5, 6, 7)
+		expect(result.keepMessages).toHaveLength(3)
+		expect(result.keepMessages[0].ts).toBe(5)
+		expect(result.keepMessages[1].ts).toBe(6)
+		expect(result.keepMessages[2].ts).toBe(7)
+
+		// Should preserve the tool_use block from message at ts:3 (2 messages before boundary)
+		expect(result.toolUseBlocksToPreserve).toHaveLength(1)
+		expect(result.toolUseBlocksToPreserve[0]).toEqual(toolUseBlock)
+	})
+
+	it("should preserve tool_use when tool_result is in 3rd kept message and tool_use is at boundary edge", () => {
+		const toolUseBlock = {
+			type: "tool_use" as const,
+			id: "toolu_third_kept",
+			name: "search",
+			input: { query: "test" },
+		}
+		const toolResultBlock = {
+			type: "tool_result" as const,
+			tool_use_id: "toolu_third_kept",
+			content: "search results",
+		}
+
+		const messages: ApiMessage[] = [
+			{ role: "user", content: "Start", ts: 1 },
+			{
+				role: "assistant",
+				content: [{ type: "text" as const, text: "Searching..." }, toolUseBlock],
+				ts: 2,
+			},
+			{ role: "user", content: "First kept message", ts: 3 },
+			{ role: "assistant", content: "Second kept message", ts: 4 },
+			{
+				role: "user",
+				content: [toolResultBlock, { type: "text" as const, text: "Done" }],
+				ts: 5,
+			},
+		]
+
+		const result = getKeepMessagesWithToolBlocks(messages, 3)
+
+		// keepMessages should be the last 3 messages (ts: 3, 4, 5)
+		expect(result.keepMessages).toHaveLength(3)
+		expect(result.keepMessages[0].ts).toBe(3)
+		expect(result.keepMessages[1].ts).toBe(4)
+		expect(result.keepMessages[2].ts).toBe(5)
+
+		// Should preserve the tool_use block from message at ts:2 (at the search boundary edge)
+		expect(result.toolUseBlocksToPreserve).toHaveLength(1)
+		expect(result.toolUseBlocksToPreserve[0]).toEqual(toolUseBlock)
+	})
+
+	it("should preserve multiple tool_uses when tool_results are in different kept messages", () => {
+		const toolUseBlock1 = {
+			type: "tool_use" as const,
+			id: "toolu_multi_1",
+			name: "read_file",
+			input: { path: "file1.txt" },
+		}
+		const toolUseBlock2 = {
+			type: "tool_use" as const,
+			id: "toolu_multi_2",
+			name: "read_file",
+			input: { path: "file2.txt" },
+		}
+		const toolResultBlock1 = {
+			type: "tool_result" as const,
+			tool_use_id: "toolu_multi_1",
+			content: "contents 1",
+		}
+		const toolResultBlock2 = {
+			type: "tool_result" as const,
+			tool_use_id: "toolu_multi_2",
+			content: "contents 2",
+		}
+
+		const messages: ApiMessage[] = [
+			{ role: "user", content: "Start", ts: 1 },
+			{
+				role: "assistant",
+				content: [{ type: "text" as const, text: "Reading file 1..." }, toolUseBlock1],
+				ts: 2,
+			},
+			{ role: "user", content: "Some message", ts: 3 },
+			{
+				role: "assistant",
+				content: [{ type: "text" as const, text: "Reading file 2..." }, toolUseBlock2],
+				ts: 4,
+			},
+			{
+				role: "user",
+				content: [toolResultBlock1, { type: "text" as const, text: "First result" }],
+				ts: 5,
+			},
+			{
+				role: "user",
+				content: [toolResultBlock2, { type: "text" as const, text: "Second result" }],
+				ts: 6,
+			},
+			{ role: "assistant", content: "Got both files", ts: 7 },
+		]
+
+		const result = getKeepMessagesWithToolBlocks(messages, 3)
+
+		// keepMessages should be the last 3 messages (ts: 5, 6, 7)
+		expect(result.keepMessages).toHaveLength(3)
+
+		// Should preserve both tool_use blocks
+		expect(result.toolUseBlocksToPreserve).toHaveLength(2)
+		expect(result.toolUseBlocksToPreserve).toContainEqual(toolUseBlock1)
+		expect(result.toolUseBlocksToPreserve).toContainEqual(toolUseBlock2)
+	})
+
+	it("should not crash when tool_result references tool_use beyond search boundary", () => {
+		const toolResultBlock = {
+			type: "tool_result" as const,
+			tool_use_id: "toolu_beyond_boundary",
+			content: "result",
+		}
+
+		// Tool_use is at ts:1, but with N_MESSAGES_TO_KEEP=3, we only search back 3 messages
+		// from startIndex-1. StartIndex is 7 (messages.length=10, keepCount=3, startIndex=7).
+		// So we search from index 6 down to index 4 (7-1 down to 7-3).
+		// The tool_use at index 0 (ts:1) is beyond the search boundary.
+		const messages: ApiMessage[] = [
+			{
+				role: "assistant",
+				content: [
+					{ type: "text" as const, text: "Way back..." },
+					{
+						type: "tool_use" as const,
+						id: "toolu_beyond_boundary",
+						name: "old_tool",
+						input: {},
+					},
+				],
+				ts: 1,
+			},
+			{ role: "user", content: "Message 2", ts: 2 },
+			{ role: "assistant", content: "Message 3", ts: 3 },
+			{ role: "user", content: "Message 4", ts: 4 },
+			{ role: "assistant", content: "Message 5", ts: 5 },
+			{ role: "user", content: "Message 6", ts: 6 },
+			{ role: "assistant", content: "Message 7", ts: 7 },
+			{
+				role: "user",
+				content: [toolResultBlock],
+				ts: 8,
+			},
+			{ role: "assistant", content: "Message 9", ts: 9 },
+			{ role: "user", content: "Message 10", ts: 10 },
+		]
+
+		// Should not crash
+		const result = getKeepMessagesWithToolBlocks(messages, 3)
+
+		// keepMessages should be the last 3 messages
+		expect(result.keepMessages).toHaveLength(3)
+		expect(result.keepMessages[0].ts).toBe(8)
+		expect(result.keepMessages[1].ts).toBe(9)
+		expect(result.keepMessages[2].ts).toBe(10)
+
+		// Should not preserve the tool_use since it's beyond the search boundary
+		expect(result.toolUseBlocksToPreserve).toHaveLength(0)
+	})
+
+	it("should not duplicate tool_use blocks when same tool_result ID appears multiple times", () => {
+		const toolUseBlock = {
+			type: "tool_use" as const,
+			id: "toolu_duplicate",
+			name: "read_file",
+			input: { path: "test.txt" },
+		}
+		const toolResultBlock1 = {
+			type: "tool_result" as const,
+			tool_use_id: "toolu_duplicate",
+			content: "result 1",
+		}
+		const toolResultBlock2 = {
+			type: "tool_result" as const,
+			tool_use_id: "toolu_duplicate",
+			content: "result 2",
+		}
+
+		const messages: ApiMessage[] = [
+			{ role: "user", content: "Start", ts: 1 },
+			{
+				role: "assistant",
+				content: [{ type: "text" as const, text: "Using tool..." }, toolUseBlock],
+				ts: 2,
+			},
+			{
+				role: "user",
+				content: [toolResultBlock1],
+				ts: 3,
+			},
+			{ role: "assistant", content: "Processing", ts: 4 },
+			{
+				role: "user",
+				content: [toolResultBlock2], // Same tool_use_id as first result
+				ts: 5,
+			},
+		]
+
+		const result = getKeepMessagesWithToolBlocks(messages, 3)
+
+		// keepMessages should be the last 3 messages (ts: 3, 4, 5)
+		expect(result.keepMessages).toHaveLength(3)
+
+		// Should only preserve the tool_use block once, not twice
+		expect(result.toolUseBlocksToPreserve).toHaveLength(1)
+		expect(result.toolUseBlocksToPreserve[0]).toEqual(toolUseBlock)
+	})
 })
 
 describe("getMessagesSinceLastSummary", () => {
@@ -807,7 +1055,7 @@ describe("summarizeConversation", () => {
 		expect(mockApiHandler.createMessage).not.toHaveBeenCalled()
 	})
 
-	it("should return error when both condensing and main API handlers are invalid", async () => {
+	it("should return error when API handler is invalid", async () => {
 		const messages: ApiMessage[] = [
 			{ role: "user", content: "Hello", ts: 1 },
 			{ role: "assistant", content: "Hi there", ts: 2 },
@@ -818,14 +1066,8 @@ describe("summarizeConversation", () => {
 			{ role: "user", content: "Tell me more", ts: 7 },
 		]
 
-		// Create invalid handlers (missing createMessage)
-		const invalidMainHandler = {
-			countTokens: vi.fn(),
-			getModel: vi.fn(),
-			// createMessage is missing
-		} as unknown as ApiHandler
-
-		const invalidCondensingHandler = {
+		// Create invalid handler (missing createMessage)
+		const invalidHandler = {
 			countTokens: vi.fn(),
 			getModel: vi.fn(),
 			// createMessage is missing
@@ -838,16 +1080,13 @@ describe("summarizeConversation", () => {
 
 		const result = await summarizeConversation(
 			messages,
-			invalidMainHandler,
+			invalidHandler,
 			defaultSystemPrompt,
 			taskId,
 			DEFAULT_PREV_CONTEXT_TOKENS,
-			false,
-			undefined,
-			invalidCondensingHandler,
 		)
 
-		// Should return original messages when both handlers are invalid
+		// Should return original messages when handler is invalid
 		expect(result.messages).toEqual(messages)
 		expect(result.cost).toBe(0)
 		expect(result.summary).toBe("")
@@ -855,9 +1094,7 @@ describe("summarizeConversation", () => {
 		expect(result.newContextTokens).toBeUndefined()
 
 		// Verify error was logged
-		expect(mockError).toHaveBeenCalledWith(
-			expect.stringContaining("Main API handler is also invalid for condensing"),
-		)
+		expect(mockError).toHaveBeenCalledWith(expect.stringContaining("API handler is invalid for condensing"))
 
 		// Restore console.error
 		console.error = originalError
@@ -909,10 +1146,6 @@ describe("summarizeConversation", () => {
 			defaultSystemPrompt,
 			taskId,
 			DEFAULT_PREV_CONTEXT_TOKENS,
-			false, // isAutomaticTrigger
-			undefined, // customCondensingPrompt
-			undefined, // condensingApiHandler
-			true, // useNativeTools - required for tool_use block preservation
 		)
 
 		// Find the summary message
@@ -988,10 +1221,6 @@ describe("summarizeConversation", () => {
 			defaultSystemPrompt,
 			taskId,
 			DEFAULT_PREV_CONTEXT_TOKENS,
-			false,
-			undefined,
-			undefined,
-			true,
 		)
 
 		expect(result.error).toBeUndefined()
@@ -1067,10 +1296,6 @@ describe("summarizeConversation", () => {
 			defaultSystemPrompt,
 			taskId,
 			DEFAULT_PREV_CONTEXT_TOKENS,
-			false,
-			undefined,
-			undefined,
-			true,
 		)
 
 		// Find the summary message (it has isSummary: true)
@@ -1141,10 +1366,6 @@ describe("summarizeConversation", () => {
 			defaultSystemPrompt,
 			taskId,
 			DEFAULT_PREV_CONTEXT_TOKENS,
-			false, // isAutomaticTrigger
-			undefined, // customCondensingPrompt
-			undefined, // condensingApiHandler
-			true, // useNativeTools - required for tool_use block preservation
 		)
 
 		// Find the summary message
@@ -1210,10 +1431,6 @@ describe("summarizeConversation", () => {
 			defaultSystemPrompt,
 			taskId,
 			DEFAULT_PREV_CONTEXT_TOKENS,
-			false, // isAutomaticTrigger
-			undefined, // customCondensingPrompt
-			undefined, // condensingApiHandler
-			false, // useNativeTools - not using tools in this test
 		)
 
 		// Find the summary message
@@ -1241,7 +1458,6 @@ describe("summarizeConversation", () => {
 describe("summarizeConversation with custom settings", () => {
 	// Mock necessary dependencies
 	let mockMainApiHandler: ApiHandler
-	let mockCondensingApiHandler: ApiHandler
 	const defaultSystemPrompt = "Default prompt"
 	const taskId = "test-task"
 
@@ -1263,7 +1479,7 @@ describe("summarizeConversation with custom settings", () => {
 		// Reset telemetry mock
 		;(TelemetryService.instance.captureContextCondensed as Mock).mockClear()
 
-		// Setup mock API handlers
+		// Setup mock API handler
 		mockMainApiHandler = {
 			createMessage: vi.fn().mockImplementation(() => {
 				return (async function* () {
@@ -1283,29 +1499,6 @@ describe("summarizeConversation with custom settings", () => {
 					maxCachePoints: 10,
 					minTokensPerCachePoint: 100,
 					cachableFields: ["system", "messages"],
-				},
-			}),
-		} as unknown as ApiHandler
-
-		mockCondensingApiHandler = {
-			createMessage: vi.fn().mockImplementation(() => {
-				return (async function* () {
-					yield { type: "text" as const, text: "Summary from condensing handler" }
-					yield { type: "usage" as const, totalCost: 0.03, outputTokens: 80 }
-				})()
-			}),
-			countTokens: vi.fn().mockImplementation(() => Promise.resolve(40)),
-			getModel: vi.fn().mockReturnValue({
-				id: "condensing-model",
-				info: {
-					contextWindow: 4000,
-					supportsImages: true,
-					supportsVision: false,
-					maxTokens: 2000,
-					supportsPromptCache: false,
-					maxCachePoints: 0,
-					minTokensPerCachePoint: 0,
-					cachableFields: [],
 				},
 			}),
 		} as unknown as ApiHandler
@@ -1372,84 +1565,6 @@ describe("summarizeConversation with custom settings", () => {
 	})
 
 	/**
-	 * Test that condensing API handler is used when provided and valid
-	 */
-	it("should use condensingApiHandler when provided and valid", async () => {
-		await summarizeConversation(
-			sampleMessages,
-			mockMainApiHandler,
-			defaultSystemPrompt,
-			taskId,
-			DEFAULT_PREV_CONTEXT_TOKENS,
-			false,
-			undefined,
-			mockCondensingApiHandler,
-		)
-
-		// Verify the condensing handler was used
-		expect((mockCondensingApiHandler.createMessage as Mock).mock.calls.length).toBe(1)
-		expect((mockMainApiHandler.createMessage as Mock).mock.calls.length).toBe(0)
-	})
-
-	/**
-	 * Test fallback to main API handler when condensing handler is not provided
-	 */
-	it("should fall back to mainApiHandler if condensingApiHandler is not provided", async () => {
-		await summarizeConversation(
-			sampleMessages,
-			mockMainApiHandler,
-			defaultSystemPrompt,
-			taskId,
-			DEFAULT_PREV_CONTEXT_TOKENS,
-			false,
-			undefined,
-			undefined,
-		)
-
-		// Verify the main handler was used
-		expect((mockMainApiHandler.createMessage as Mock).mock.calls.length).toBe(1)
-	})
-
-	/**
-	 * Test fallback to main API handler when condensing handler is invalid
-	 */
-	it("should fall back to mainApiHandler if condensingApiHandler is invalid", async () => {
-		// Create an invalid handler (missing createMessage)
-		const invalidHandler = {
-			countTokens: vi.fn(),
-			getModel: vi.fn(),
-			// createMessage is missing
-		} as unknown as ApiHandler
-
-		// Mock console.warn to verify warning message
-		const originalWarn = console.warn
-		const mockWarn = vi.fn()
-		console.warn = mockWarn
-
-		await summarizeConversation(
-			sampleMessages,
-			mockMainApiHandler,
-			defaultSystemPrompt,
-			taskId,
-			DEFAULT_PREV_CONTEXT_TOKENS,
-			false,
-			undefined,
-			invalidHandler,
-		)
-
-		// Verify the main handler was used as fallback
-		expect((mockMainApiHandler.createMessage as Mock).mock.calls.length).toBe(1)
-
-		// Verify warning was logged
-		expect(mockWarn).toHaveBeenCalledWith(
-			expect.stringContaining("Chosen API handler for condensing does not support message creation"),
-		)
-
-		// Restore console.warn
-		console.warn = originalWarn
-	})
-
-	/**
 	 * Test that telemetry is called for custom prompt usage
 	 */
 	it("should capture telemetry when using custom prompt", async () => {
@@ -1468,38 +1583,13 @@ describe("summarizeConversation with custom settings", () => {
 			taskId,
 			false,
 			true, // usedCustomPrompt
-			false, // usedCustomApiHandler
 		)
 	})
 
 	/**
-	 * Test that telemetry is called for custom API handler usage
+	 * Test that telemetry is called with isAutomaticTrigger flag
 	 */
-	it("should capture telemetry when using custom API handler", async () => {
-		await summarizeConversation(
-			sampleMessages,
-			mockMainApiHandler,
-			defaultSystemPrompt,
-			taskId,
-			DEFAULT_PREV_CONTEXT_TOKENS,
-			false,
-			undefined,
-			mockCondensingApiHandler,
-		)
-
-		// Verify telemetry was called with custom API handler flag
-		expect(TelemetryService.instance.captureContextCondensed).toHaveBeenCalledWith(
-			taskId,
-			false,
-			false, // usedCustomPrompt
-			true, // usedCustomApiHandler
-		)
-	})
-
-	/**
-	 * Test that telemetry is called with both custom prompt and API handler
-	 */
-	it("should capture telemetry when using both custom prompt and API handler", async () => {
+	it("should capture telemetry with isAutomaticTrigger flag", async () => {
 		await summarizeConversation(
 			sampleMessages,
 			mockMainApiHandler,
@@ -1508,15 +1598,13 @@ describe("summarizeConversation with custom settings", () => {
 			DEFAULT_PREV_CONTEXT_TOKENS,
 			true, // isAutomaticTrigger
 			"Custom prompt",
-			mockCondensingApiHandler,
 		)
 
-		// Verify telemetry was called with both flags
+		// Verify telemetry was called with isAutomaticTrigger flag
 		expect(TelemetryService.instance.captureContextCondensed).toHaveBeenCalledWith(
 			taskId,
 			true, // isAutomaticTrigger
 			true, // usedCustomPrompt
-			true, // usedCustomApiHandler
 		)
 	})
 })

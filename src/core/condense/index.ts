@@ -7,11 +7,12 @@ import { t } from "../../i18n"
 import { ApiHandler } from "../../api"
 import { ApiMessage } from "../task-persistence/apiMessages"
 import { maybeRemoveImageBlocks } from "../../api/transform/image-cleaning"
+import { findLast } from "../../shared/array"
+import { supportPrompt } from "../../shared/support-prompt"
 
 /**
  * Checks if a message contains tool_result blocks.
- * For native tools protocol, user messages with tool_result blocks require
- * corresponding tool_use blocks from the previous assistant turn.
+ * User messages with tool_result blocks require corresponding tool_use blocks from the previous assistant turn.
  */
 function hasToolResultBlocks(message: ApiMessage): boolean {
 	if (message.role !== "user" || typeof message.content === "string") {
@@ -28,6 +29,28 @@ function getToolUseBlocks(message: ApiMessage): Anthropic.Messages.ToolUseBlock[
 		return []
 	}
 	return message.content.filter((block) => block.type === "tool_use") as Anthropic.Messages.ToolUseBlock[]
+}
+
+/**
+ * Gets the tool_result blocks from a message.
+ */
+function getToolResultBlocks(message: ApiMessage): Anthropic.ToolResultBlockParam[] {
+	if (message.role !== "user" || typeof message.content === "string") {
+		return []
+	}
+	return message.content.filter((block): block is Anthropic.ToolResultBlockParam => block.type === "tool_result")
+}
+
+/**
+ * Finds a tool_use block by ID in a message.
+ */
+function findToolUseBlockById(message: ApiMessage, toolUseId: string): Anthropic.Messages.ToolUseBlock | undefined {
+	if (message.role !== "assistant" || typeof message.content === "string") {
+		return undefined
+	}
+	return message.content.find(
+		(block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use" && block.id === toolUseId,
+	)
 }
 
 /**
@@ -57,11 +80,11 @@ export type KeepMessagesResult = {
 
 /**
  * Extracts tool_use blocks that need to be preserved to match tool_result blocks in keepMessages.
- * When the first kept message is a user message with tool_result blocks,
- * we need to find the corresponding tool_use blocks from the preceding assistant message.
+ * Checks ALL kept messages for tool_result blocks and searches backwards through the condensed
+ * region (bounded by N_MESSAGES_TO_KEEP) to find the matching tool_use blocks by ID.
  * These tool_use blocks will be appended to the summary message to maintain proper pairing.
  *
- * Also extracts reasoning blocks from the preceding assistant message, which are required
+ * Also extracts reasoning blocks from messages containing preserved tool_uses, which are required
  * by DeepSeek and Z.ai for interleaved thinking mode. Without these, the API returns a 400 error
  * "Missing reasoning_content field in the assistant message".
  * See: https://api-docs.deepseek.com/guides/thinking_mode#tool-calls
@@ -78,73 +101,60 @@ export function getKeepMessagesWithToolBlocks(messages: ApiMessage[], keepCount:
 	const startIndex = messages.length - keepCount
 	const keepMessages = messages.slice(startIndex)
 
-	// Check if the first kept message is a user message with tool_result blocks
-	if (keepMessages.length > 0 && hasToolResultBlocks(keepMessages[0])) {
-		// Look for the preceding assistant message with tool_use blocks
-		const precedingIndex = startIndex - 1
-		if (precedingIndex >= 0) {
-			const precedingMessage = messages[precedingIndex]
-			const toolUseBlocks = getToolUseBlocks(precedingMessage)
-			if (toolUseBlocks.length > 0) {
-				// Also extract reasoning blocks for DeepSeek/Z.ai interleaved thinking
-				// Task stores reasoning as {type: "reasoning", text: "..."} content blocks
-				const reasoningBlocks = getReasoningBlocks(precedingMessage)
-				// Return the tool_use blocks and reasoning blocks to be merged into the summary message
-				return {
-					keepMessages,
-					toolUseBlocksToPreserve: toolUseBlocks,
-					reasoningBlocksToPreserve: reasoningBlocks,
-				}
+	const toolUseBlocksToPreserve: Anthropic.Messages.ToolUseBlock[] = []
+	const reasoningBlocksToPreserve: Anthropic.Messages.ContentBlockParam[] = []
+	const preservedToolUseIds = new Set<string>()
+
+	// Check ALL kept messages for tool_result blocks
+	for (const keepMsg of keepMessages) {
+		if (!hasToolResultBlocks(keepMsg)) {
+			continue
+		}
+
+		const toolResults = getToolResultBlocks(keepMsg)
+
+		for (const toolResult of toolResults) {
+			const toolUseId = toolResult.tool_use_id
+
+			// Skip if we've already found this tool_use
+			if (preservedToolUseIds.has(toolUseId)) {
+				continue
+			}
+
+			// Search backwards through the condensed region (bounded)
+			const searchStart = startIndex - 1
+			const searchEnd = Math.max(0, startIndex - N_MESSAGES_TO_KEEP)
+			const messagesToSearch = messages.slice(searchEnd, searchStart + 1)
+
+			// Find the message containing this tool_use
+			const messageWithToolUse = findLast(messagesToSearch, (msg) => {
+				return findToolUseBlockById(msg, toolUseId) !== undefined
+			})
+
+			if (messageWithToolUse) {
+				const toolUse = findToolUseBlockById(messageWithToolUse, toolUseId)!
+				toolUseBlocksToPreserve.push(toolUse)
+				preservedToolUseIds.add(toolUseId)
+
+				// Also preserve reasoning blocks from that message
+				const reasoning = getReasoningBlocks(messageWithToolUse)
+				reasoningBlocksToPreserve.push(...reasoning)
 			}
 		}
 	}
 
-	return { keepMessages, toolUseBlocksToPreserve: [], reasoningBlocksToPreserve: [] }
+	return {
+		keepMessages,
+		toolUseBlocksToPreserve,
+		reasoningBlocksToPreserve,
+	}
 }
 
 export const N_MESSAGES_TO_KEEP = 3
 export const MIN_CONDENSE_THRESHOLD = 5 // Minimum percentage of context window to trigger condensing
 export const MAX_CONDENSE_THRESHOLD = 100 // Maximum percentage of context window to trigger condensing
 
-const SUMMARY_PROMPT = `\
-Your task is to create a detailed summary of the conversation so far, paying close attention to the user's explicit requests and your previous actions.
-This summary should be thorough in capturing technical details, code patterns, and architectural decisions that would be essential for continuing with the conversation and supporting any continuing tasks.
-
-Your summary should be structured as follows:
-Context: The context to continue the conversation with. If applicable based on the current task, this should include:
-  1. Previous Conversation: High level details about what was discussed throughout the entire conversation with the user. This should be written to allow someone to be able to follow the general overarching conversation flow.
-  2. Current Work: Describe in detail what was being worked on prior to this request to summarize the conversation. Pay special attention to the more recent messages in the conversation.
-  3. Key Technical Concepts: List all important technical concepts, technologies, coding conventions, and frameworks discussed, which might be relevant for continuing with this work.
-  4. Relevant Files and Code: If applicable, enumerate specific files and code sections examined, modified, or created for the task continuation. Pay special attention to the most recent messages and changes.
-  5. Problem Solving: Document problems solved thus far and any ongoing troubleshooting efforts.
-  6. Pending Tasks and Next Steps: Outline all pending tasks that you have explicitly been asked to work on, as well as list the next steps you will take for all outstanding work, if applicable. Include code snippets where they add clarity. For any next steps, include direct quotes from the most recent conversation showing exactly what task you were working on and where you left off. This should be verbatim to ensure there's no information loss in context between tasks.
-
-Example summary structure:
-1. Previous Conversation:
-  [Detailed description]
-2. Current Work:
-  [Detailed description]
-3. Key Technical Concepts:
-  - [Concept 1]
-  - [Concept 2]
-  - [...]
-4. Relevant Files and Code:
-  - [File Name 1]
-    - [Summary of why this file is important]
-    - [Summary of the changes made to this file, if any]
-    - [Important Code Snippet]
-  - [File Name 2]
-    - [Important Code Snippet]
-  - [...]
-5. Problem Solving:
-  [Detailed description]
-6. Pending Tasks and Next Steps:
-  - [Task 1 details & next steps]
-  - [Task 2 details & next steps]
-  - [...]
-
-Output only the summary of the conversation so far, without any additional commentary or explanation.
-`
+const SUMMARY_PROMPT = supportPrompt.default.CONDENSE
 
 export type SummarizeResponse = {
 	messages: ApiMessage[] // The messages after summarization
@@ -159,24 +169,12 @@ export type SummarizeResponse = {
  * Summarizes the conversation messages using an LLM call
  *
  * @param {ApiMessage[]} messages - The conversation messages
- * @param {ApiHandler} apiHandler - The API handler to use for token counting.
- * @param {string} systemPrompt - The system prompt for API requests, which should be considered in the context token count
- * @param {string} taskId - The task ID for the conversation, used for telemetry
- * @param {boolean} isAutomaticTrigger - Whether the summarization is triggered automatically
- * @returns {SummarizeResponse} - The result of the summarization operation (see above)
- */
-/**
- * Summarizes the conversation messages using an LLM call
- *
- * @param {ApiMessage[]} messages - The conversation messages
- * @param {ApiHandler} apiHandler - The API handler to use for token counting (fallback if condensingApiHandler not provided)
+ * @param {ApiHandler} apiHandler - The API handler to use for summarization and token counting
  * @param {string} systemPrompt - The system prompt for API requests (fallback if customCondensingPrompt not provided)
  * @param {string} taskId - The task ID for the conversation, used for telemetry
  * @param {number} prevContextTokens - The number of tokens currently in the context, used to ensure we don't grow the context
  * @param {boolean} isAutomaticTrigger - Whether the summarization is triggered automatically
  * @param {string} customCondensingPrompt - Optional custom prompt to use for condensing
- * @param {ApiHandler} condensingApiHandler - Optional specific API handler to use for condensing
- * @param {boolean} useNativeTools - Whether native tools protocol is being used (requires tool_use/tool_result pairing)
  * @returns {SummarizeResponse} - The result of the summarization operation (see above)
  */
 export async function summarizeConversation(
@@ -187,14 +185,11 @@ export async function summarizeConversation(
 	prevContextTokens: number,
 	isAutomaticTrigger?: boolean,
 	customCondensingPrompt?: string,
-	condensingApiHandler?: ApiHandler,
-	useNativeTools?: boolean,
 ): Promise<SummarizeResponse> {
 	TelemetryService.instance.captureContextCondensed(
 		taskId,
 		isAutomaticTrigger ?? false,
 		!!customCondensingPrompt?.trim(),
-		!!condensingApiHandler,
 	)
 
 	const response: SummarizeResponse = { messages, cost: 0, summary: "" }
@@ -202,15 +197,11 @@ export async function summarizeConversation(
 	// Always preserve the first message (which may contain slash command content)
 	const firstMessage = messages[0]
 
-	// Get keepMessages and any tool_use/reasoning blocks that need to be preserved for tool_result pairing
-	// Only preserve these blocks when using native tools protocol (XML protocol doesn't need them)
-	const { keepMessages, toolUseBlocksToPreserve, reasoningBlocksToPreserve } = useNativeTools
-		? getKeepMessagesWithToolBlocks(messages, N_MESSAGES_TO_KEEP)
-		: {
-				keepMessages: messages.slice(-N_MESSAGES_TO_KEEP),
-				toolUseBlocksToPreserve: [],
-				reasoningBlocksToPreserve: [],
-			}
+	// Get keepMessages and any tool_use/reasoning blocks that need to be preserved for tool_result pairing.
+	const { keepMessages, toolUseBlocksToPreserve, reasoningBlocksToPreserve } = getKeepMessagesWithToolBlocks(
+		messages,
+		N_MESSAGES_TO_KEEP,
+	)
 
 	const keepStartIndex = Math.max(messages.length - N_MESSAGES_TO_KEEP, 0)
 	const includeFirstKeptMessageInSummary = toolUseBlocksToPreserve.length > 0
@@ -249,29 +240,14 @@ export async function summarizeConversation(
 	// Use custom prompt if provided and non-empty, otherwise use the default SUMMARY_PROMPT
 	const promptToUse = customCondensingPrompt?.trim() ? customCondensingPrompt.trim() : SUMMARY_PROMPT
 
-	// Use condensing API handler if provided, otherwise use main API handler
-	let handlerToUse = condensingApiHandler || apiHandler
-
-	// Check if the chosen handler supports the required functionality
-	if (!handlerToUse || typeof handlerToUse.createMessage !== "function") {
-		console.warn(
-			"Chosen API handler for condensing does not support message creation or is invalid, falling back to main apiHandler.",
-		)
-
-		handlerToUse = apiHandler // Fallback to the main, presumably valid, apiHandler
-
-		// Ensure the main apiHandler itself is valid before this point or add another check.
-		if (!handlerToUse || typeof handlerToUse.createMessage !== "function") {
-			// This case should ideally not happen if main apiHandler is always valid.
-			// Consider throwing an error or returning a specific error response.
-			console.error("Main API handler is also invalid for condensing. Cannot proceed.")
-			// Return an appropriate error structure for SummarizeResponse
-			const error = t("common:errors.condense_handler_invalid")
-			return { ...response, error }
-		}
+	// Validate that the API handler supports message creation
+	if (!apiHandler || typeof apiHandler.createMessage !== "function") {
+		console.error("API handler is invalid for condensing. Cannot proceed.")
+		const error = t("common:errors.condense_handler_invalid")
+		return { ...response, error }
 	}
 
-	const stream = handlerToUse.createMessage(promptToUse, requestMessages)
+	const stream = apiHandler.createMessage(promptToUse, requestMessages)
 
 	let summary = ""
 	let cost = 0
