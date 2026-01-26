@@ -1,17 +1,18 @@
 // npx vitest run api/providers/__tests__/gemini-oauth.spec.ts
 
-vi.mock("node:fs", () => ({
-	promises: {
-		readFile: vi.fn(),
-	},
-}))
-
 import { Anthropic } from "@anthropic-ai/sdk"
-
-import { promises as fs } from "node:fs"
 
 import { GeminiOAuthHandler } from "../gemini-oauth"
 import type { ApiHandlerOptions } from "../../../shared/api"
+import { geminiOAuthManager } from "../../../integrations/gemini-oauth/oauth"
+
+vi.mock("../../../integrations/gemini-oauth/oauth", () => ({
+	geminiOAuthManager: {
+		getAccessToken: vi.fn(),
+		getProjectId: vi.fn(),
+		forceRefreshAccessToken: vi.fn(),
+	},
+}))
 
 const mockFetch = vi.fn()
 
@@ -35,16 +36,8 @@ describe("GeminiOAuthHandler", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		global.fetch = mockFetch as any
-		const mockCredentials = {
-			token: {
-				access_token: "test-access-token",
-				client_id: "client-id",
-				client_secret: "client-secret",
-				expiry_date: Date.now() + 3600_000,
-			},
-			project_id: "test-project",
-		}
-		;(fs.readFile as any).mockResolvedValue(JSON.stringify(mockCredentials))
+		;(geminiOAuthManager.getAccessToken as any).mockResolvedValue("test-access-token")
+		;(geminiOAuthManager.getProjectId as any).mockResolvedValue("test-project")
 		options = {
 			apiModelId: "gemini-2.5-pro",
 			geminiOauthPath: "~/.roo/gemini-oauth.json",

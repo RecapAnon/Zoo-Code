@@ -589,22 +589,6 @@ const ApiOptions = ({
 				/>
 			)}
 
-			{selectedProvider === "codex-oauth" && (
-				<CodexOAuth
-					apiConfiguration={apiConfiguration}
-					setApiConfigurationField={setApiConfigurationField}
-					simplifySettings={fromWelcomeView}
-				/>
-			)}
-
-			{selectedProvider === "gemini-oauth" && (
-				<GeminiOAuth
-					apiConfiguration={apiConfiguration}
-					setApiConfigurationField={setApiConfigurationField}
-					simplifySettings={fromWelcomeView}
-				/>
-			)}
-
 			{selectedProvider === "openai-native" && (
 				<OpenAI
 					apiConfiguration={apiConfiguration}

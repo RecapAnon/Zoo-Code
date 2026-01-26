@@ -111,6 +111,20 @@
 			"thinking_complete_safety": "(Thinking complete, but output was blocked due to safety settings.)",
 			"thinking_complete_recitation": "(Thinking complete, but output was blocked due to recitation check.)"
 		},
+		"geminiOauth": {
+			"notAuthenticated": "Not authenticated with Gemini OAuth. Please sign in using the Gemini OAuth flow.",
+			"missingProjectId": "Gemini OAuth credentials missing project_id; set geminiOauthProjectId.",
+			"invalidRequest": "Invalid request to Gemini OAuth API. Please check your input parameters.",
+			"authenticationFailed": "Authentication failed. Please re-authenticate with Gemini OAuth.",
+			"accessDenied": "Access denied. Your account may not have access to Gemini OAuth.",
+			"endpointNotFound": "Gemini OAuth API endpoint not found.",
+			"rateLimitExceeded": "Rate limit exceeded. Please try again later.",
+			"serviceError": "Gemini OAuth service error. Please try again later.",
+			"genericError": "Gemini OAuth error ({{status}})",
+			"apiError": "Gemini OAuth API error: {{message}}",
+			"generate_stream": "Gemini OAuth generate stream error: {{error}}",
+			"generate_complete_prompt": "Gemini OAuth completion error: {{error}}"
+		},
 		"cerebras": {
 			"authenticationFailed": "Cerebras API authentication failed. Please check your API key is valid and not expired.",
 			"accessForbidden": "Cerebras API access forbidden. Your API key may not have access to the requested model or feature.",
