@@ -40,7 +40,6 @@ import {
 	RooCodeEventName,
 	requestyDefaultModelId,
 	openRouterDefaultModelId,
-	DEFAULT_TERMINAL_OUTPUT_CHARACTER_LIMIT,
 	DEFAULT_WRITE_DELAY_MS,
 	ORGANIZATION_ALLOW_ALL,
 	DEFAULT_MODES,
@@ -159,7 +158,7 @@ export class ClineProvider
 
 	public isViewLaunched = false
 	public settingsImportedAt?: number
-	public readonly latestAnnouncementId = "jan-2026-v3.42.0-chatgpt-usage-limits-claude-code-removed-grok-free-ends" // v3.42.0 ChatGPT Usage Limits, Claude Code Removed, Grok Code Fast Free Ends
+	public readonly latestAnnouncementId = "jan-2026-v3.46.0-parallel-tools" // v3.46.0 Parallel Tools & Smarter Reading
 	public readonly providerSettingsManager: ProviderSettingsManager
 	public readonly customModesManager: CustomModesManager
 
@@ -970,24 +969,14 @@ export class ClineProvider
 			}
 		}
 
-		const {
-			apiConfiguration,
-			diffEnabled: enableDiff,
-			enableCheckpoints,
-			checkpointTimeout,
-			fuzzyMatchThreshold,
-			experiments,
-			cloudUserInfo,
-			taskSyncEnabled,
-		} = await this.getState()
+		const { apiConfiguration, enableCheckpoints, checkpointTimeout, experiments, cloudUserInfo, taskSyncEnabled } =
+			await this.getState()
 
 		const task = new Task({
 			provider: this,
 			apiConfiguration,
-			enableDiff,
 			enableCheckpoints,
 			checkpointTimeout,
-			fuzzyMatchThreshold,
 			consecutiveMistakeLimit: apiConfiguration.consecutiveMistakeLimit,
 			historyItem,
 			experiments,
@@ -1757,43 +1746,79 @@ export class ClineProvider
 		await this.postMessageToWebview({ type: "condenseTaskContextResponse", text: taskId })
 	}
 
-	// this function deletes a task from task hidtory, and deletes it's checkpoints and delete the task folder
-	async deleteTaskWithId(id: string) {
+	// this function deletes a task from task history, and deletes its checkpoints and delete the task folder
+	// If the task has subtasks (childIds), they will also be deleted recursively
+	async deleteTaskWithId(id: string, cascadeSubtasks: boolean = true) {
 		try {
-			// get the task directory full path
-			const { taskDirPath } = await this.getTaskWithId(id)
+			// get the task directory full path and history item
+			const { taskDirPath, historyItem } = await this.getTaskWithId(id)
 
-			// remove task from stack if it's the current task
-			if (id === this.getCurrentTask()?.taskId) {
-				// Close the current task instance; delegation flows will be handled via metadata if applicable.
-				await this.removeClineFromStack()
+			// Collect all task IDs to delete (parent + all subtasks)
+			const allIdsToDelete: string[] = [id]
+
+			if (cascadeSubtasks) {
+				// Recursively collect all child IDs
+				const collectChildIds = async (taskId: string): Promise<void> => {
+					try {
+						const { historyItem: item } = await this.getTaskWithId(taskId)
+						if (item.childIds && item.childIds.length > 0) {
+							for (const childId of item.childIds) {
+								allIdsToDelete.push(childId)
+								await collectChildIds(childId)
+							}
+						}
+					} catch (error) {
+						// Child task may already be deleted or not found, continue
+						console.log(`[deleteTaskWithId] child task ${taskId} not found, skipping`)
+					}
+				}
+
+				await collectChildIds(id)
 			}
 
-			// delete task from the task history state
-			await this.deleteTaskFromState(id)
+			// Remove from stack if any of the tasks to delete are in the current task stack
+			for (const taskId of allIdsToDelete) {
+				if (taskId === this.getCurrentTask()?.taskId) {
+					// Close the current task instance; delegation flows will be handled via metadata if applicable.
+					await this.removeClineFromStack()
+					break
+				}
+			}
 
-			// Delete associated shadow repository or branch.
-			// TODO: Store `workspaceDir` in the `HistoryItem` object.
+			// Delete all tasks from state in one batch
+			const taskHistory = this.getGlobalState("taskHistory") ?? []
+			const updatedTaskHistory = taskHistory.filter((task) => !allIdsToDelete.includes(task.id))
+			await this.updateGlobalState("taskHistory", updatedTaskHistory)
+			this.recentTasksCache = undefined
+
+			// Delete associated shadow repositories or branches and task directories
 			const globalStorageDir = this.contextProxy.globalStorageUri.fsPath
 			const workspaceDir = this.cwd
+			const { getTaskDirectoryPath } = await import("../../utils/storage")
+			const globalStoragePath = this.contextProxy.globalStorageUri.fsPath
 
-			try {
-				await ShadowCheckpointService.deleteTask({ taskId: id, globalStorageDir, workspaceDir })
-			} catch (error) {
-				console.error(
-					`[deleteTaskWithId${id}] failed to delete associated shadow repository or branch: ${error instanceof Error ? error.message : String(error)}`,
-				)
+			for (const taskId of allIdsToDelete) {
+				try {
+					await ShadowCheckpointService.deleteTask({ taskId, globalStorageDir, workspaceDir })
+				} catch (error) {
+					console.error(
+						`[deleteTaskWithId${taskId}] failed to delete associated shadow repository or branch: ${error instanceof Error ? error.message : String(error)}`,
+					)
+				}
+
+				// Delete the task directory
+				try {
+					const dirPath = await getTaskDirectoryPath(globalStoragePath, taskId)
+					await fs.rm(dirPath, { recursive: true, force: true })
+					console.log(`[deleteTaskWithId${taskId}] removed task directory`)
+				} catch (error) {
+					console.error(
+						`[deleteTaskWithId${taskId}] failed to remove task directory: ${error instanceof Error ? error.message : String(error)}`,
+					)
+				}
 			}
 
-			// delete the entire task directory including checkpoints and all content
-			try {
-				await fs.rm(taskDirPath, { recursive: true, force: true })
-				console.log(`[deleteTaskWithId${id}] removed task directory`)
-			} catch (error) {
-				console.error(
-					`[deleteTaskWithId${id}] failed to remove task directory: ${error instanceof Error ? error.message : String(error)}`,
-				)
-			}
+			await this.postStateToWebview()
 		} catch (error) {
 			// If task is not found, just remove it from state
 			if (error instanceof Error && error.message === "Task not found") {
@@ -1988,7 +2013,6 @@ export class ClineProvider
 			soundEnabled,
 			ttsEnabled,
 			ttsSpeed,
-			diffEnabled,
 			enableCheckpoints,
 			checkpointTimeout,
 			taskHistory,
@@ -1999,8 +2023,6 @@ export class ClineProvider
 			remoteBrowserEnabled,
 			cachedChromeHostUrl,
 			writeDelayMs,
-			terminalOutputLineLimit,
-			terminalOutputCharacterLimit,
 			terminalShellIntegrationTimeout,
 			terminalShellIntegrationDisabled,
 			terminalCommandDelay,
@@ -2009,9 +2031,7 @@ export class ClineProvider
 			terminalZshOhMy,
 			terminalZshP10k,
 			terminalZdotdir,
-			fuzzyMatchThreshold,
 			mcpEnabled,
-			enableMcpServerCreation,
 			currentApiConfigName,
 			listApiConfigMeta,
 			pinnedApiConfigs,
@@ -2029,10 +2049,8 @@ export class ClineProvider
 			showRooIgnoredFiles,
 			enableSubfolderRules,
 			language,
-			maxReadFileLine,
 			maxImageFileSize,
 			maxTotalImageSize,
-			terminalCompressProgressBar,
 			historyPreviewCollapsed,
 			reasoningBlockCollapsed,
 			enterBehavior,
@@ -2042,7 +2060,6 @@ export class ClineProvider
 			publicSharingEnabled,
 			organizationAllowList,
 			organizationSettingsVersion,
-			maxConcurrentFileReads,
 			customCondensingPrompt,
 			codebaseIndexConfig,
 			codebaseIndexModels,
@@ -2128,7 +2145,6 @@ export class ClineProvider
 			soundEnabled: soundEnabled ?? false,
 			ttsEnabled: ttsEnabled ?? false,
 			ttsSpeed: ttsSpeed ?? 1.0,
-			diffEnabled: diffEnabled ?? true,
 			enableCheckpoints: enableCheckpoints ?? true,
 			checkpointTimeout: checkpointTimeout ?? DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
 			shouldShowAnnouncement:
@@ -2142,8 +2158,6 @@ export class ClineProvider
 			remoteBrowserEnabled: remoteBrowserEnabled ?? false,
 			cachedChromeHostUrl: cachedChromeHostUrl,
 			writeDelayMs: writeDelayMs ?? DEFAULT_WRITE_DELAY_MS,
-			terminalOutputLineLimit: terminalOutputLineLimit ?? 500,
-			terminalOutputCharacterLimit: terminalOutputCharacterLimit ?? DEFAULT_TERMINAL_OUTPUT_CHARACTER_LIMIT,
 			terminalShellIntegrationTimeout: terminalShellIntegrationTimeout ?? Terminal.defaultShellIntegrationTimeout,
 			terminalShellIntegrationDisabled: terminalShellIntegrationDisabled ?? true,
 			terminalCommandDelay: terminalCommandDelay ?? 0,
@@ -2152,9 +2166,7 @@ export class ClineProvider
 			terminalZshOhMy: terminalZshOhMy ?? false,
 			terminalZshP10k: terminalZshP10k ?? false,
 			terminalZdotdir: terminalZdotdir ?? false,
-			fuzzyMatchThreshold: fuzzyMatchThreshold ?? 1.0,
 			mcpEnabled: mcpEnabled ?? true,
-			enableMcpServerCreation: enableMcpServerCreation ?? true,
 			currentApiConfigName: currentApiConfigName ?? "default",
 			listApiConfigMeta: listApiConfigMeta ?? [],
 			pinnedApiConfigs: pinnedApiConfigs ?? {},
@@ -2177,12 +2189,9 @@ export class ClineProvider
 			enableSubfolderRules: enableSubfolderRules ?? false,
 			language: language ?? formatLanguage(vscode.env.language),
 			renderContext: this.renderContext,
-			maxReadFileLine: maxReadFileLine ?? -1,
 			maxImageFileSize: maxImageFileSize ?? 5,
 			maxTotalImageSize: maxTotalImageSize ?? 20,
-			maxConcurrentFileReads: maxConcurrentFileReads ?? 5,
 			settingsImportedAt: this.settingsImportedAt,
-			terminalCompressProgressBar: terminalCompressProgressBar ?? true,
 			hasSystemPromptOverride,
 			historyPreviewCollapsed: historyPreviewCollapsed ?? false,
 			reasoningBlockCollapsed: reasoningBlockCollapsed ?? true,
@@ -2380,7 +2389,6 @@ export class ClineProvider
 			soundEnabled: stateValues.soundEnabled ?? false,
 			ttsEnabled: stateValues.ttsEnabled ?? false,
 			ttsSpeed: stateValues.ttsSpeed ?? 1.0,
-			diffEnabled: stateValues.diffEnabled ?? true,
 			enableCheckpoints: stateValues.enableCheckpoints ?? true,
 			checkpointTimeout: stateValues.checkpointTimeout ?? DEFAULT_CHECKPOINT_TIMEOUT_SECONDS,
 			soundVolume: stateValues.soundVolume,
@@ -2389,11 +2397,7 @@ export class ClineProvider
 			remoteBrowserHost: stateValues.remoteBrowserHost,
 			remoteBrowserEnabled: stateValues.remoteBrowserEnabled ?? false,
 			cachedChromeHostUrl: stateValues.cachedChromeHostUrl as string | undefined,
-			fuzzyMatchThreshold: stateValues.fuzzyMatchThreshold ?? 1.0,
 			writeDelayMs: stateValues.writeDelayMs ?? DEFAULT_WRITE_DELAY_MS,
-			terminalOutputLineLimit: stateValues.terminalOutputLineLimit ?? 500,
-			terminalOutputCharacterLimit:
-				stateValues.terminalOutputCharacterLimit ?? DEFAULT_TERMINAL_OUTPUT_CHARACTER_LIMIT,
 			terminalShellIntegrationTimeout:
 				stateValues.terminalShellIntegrationTimeout ?? Terminal.defaultShellIntegrationTimeout,
 			terminalShellIntegrationDisabled: stateValues.terminalShellIntegrationDisabled ?? true,
@@ -2403,11 +2407,9 @@ export class ClineProvider
 			terminalZshOhMy: stateValues.terminalZshOhMy ?? false,
 			terminalZshP10k: stateValues.terminalZshP10k ?? false,
 			terminalZdotdir: stateValues.terminalZdotdir ?? false,
-			terminalCompressProgressBar: stateValues.terminalCompressProgressBar ?? true,
 			mode: stateValues.mode ?? defaultModeSlug,
 			language: stateValues.language ?? formatLanguage(vscode.env.language),
 			mcpEnabled: stateValues.mcpEnabled ?? true,
-			enableMcpServerCreation: stateValues.enableMcpServerCreation ?? true,
 			mcpServers: this.mcpHub?.getAllServers() ?? [],
 			currentApiConfigName: stateValues.currentApiConfigName ?? "default",
 			listApiConfigMeta: stateValues.listApiConfigMeta ?? [],
@@ -2425,10 +2427,8 @@ export class ClineProvider
 			telemetrySetting: stateValues.telemetrySetting || "unset",
 			showRooIgnoredFiles: stateValues.showRooIgnoredFiles ?? false,
 			enableSubfolderRules: stateValues.enableSubfolderRules ?? false,
-			maxReadFileLine: stateValues.maxReadFileLine ?? -1,
 			maxImageFileSize: stateValues.maxImageFileSize ?? 5,
 			maxTotalImageSize: stateValues.maxTotalImageSize ?? 20,
-			maxConcurrentFileReads: stateValues.maxConcurrentFileReads ?? 5,
 			historyPreviewCollapsed: stateValues.historyPreviewCollapsed ?? false,
 			reasoningBlockCollapsed: stateValues.reasoningBlockCollapsed ?? true,
 			enterBehavior: stateValues.enterBehavior ?? "send",
@@ -2880,10 +2880,8 @@ export class ClineProvider
 		const {
 			apiConfiguration,
 			organizationAllowList,
-			diffEnabled: enableDiff,
 			enableCheckpoints,
 			checkpointTimeout,
-			fuzzyMatchThreshold,
 			experiments,
 			cloudUserInfo,
 			remoteControlEnabled,
@@ -2905,10 +2903,8 @@ export class ClineProvider
 		const task = new Task({
 			provider: this,
 			apiConfiguration,
-			enableDiff,
 			enableCheckpoints,
 			checkpointTimeout,
-			fuzzyMatchThreshold,
 			consecutiveMistakeLimit: apiConfiguration.consecutiveMistakeLimit,
 			task: text,
 			images,
