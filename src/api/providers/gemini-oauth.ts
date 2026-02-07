@@ -457,12 +457,12 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 			reader.releaseLock()
 		}
 
-		if (pendingGroundingMetadata) {
-			const sources = this.extractGroundingSources(pendingGroundingMetadata)
-			if (sources.length > 0) {
-				yield { type: "grounding", sources }
-			}
-		}
+		// if (pendingGroundingMetadata) {
+		// 	const sources = this.extractGroundingSources(pendingGroundingMetadata)
+		// 	if (sources.length > 0) {
+		// 		yield { type: "grounding", sources }
+		// 	}
+		// }
 
 		if (lastUsageMetadata) {
 			const usageData = this.normalizeUsage(lastUsageMetadata)
@@ -547,12 +547,12 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 					if (text) {
 						yield { type: "text", text }
 					}
-					if (candidate?.groundingMetadata) {
-						const sources = this.extractGroundingSources(candidate.groundingMetadata)
-						if (sources.length > 0) {
-							yield { type: "grounding", sources }
-						}
-					}
+					// if (candidate?.groundingMetadata) {
+					// 	const sources = this.extractGroundingSources(candidate.groundingMetadata)
+					// 	if (sources.length > 0) {
+					// 		yield { type: "grounding", sources }
+					// 	}
+					// }
 					if (responseBody?.usageMetadata) {
 						const usageData = this.normalizeUsage(responseBody.usageMetadata)
 						if (usageData) {
@@ -635,12 +635,12 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 					.join("")
 			}
 
-			if (candidate?.groundingMetadata) {
-				const citations = this.extractCitationsOnly(candidate.groundingMetadata)
-				if (citations) {
-					text += `${t("common:errors.gemini.sources")} ${citations}`
-				}
-			}
+			// if (candidate?.groundingMetadata) {
+			// 	const citations = this.extractCitationsOnly(candidate.groundingMetadata)
+			// 	if (citations) {
+			// 		text += `${t("common:errors.gemini.sources")} ${citations}`
+			// 	}
+			// }
 
 			return text
 		} catch (error) {
@@ -810,32 +810,32 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		return this.lastResponseId
 	}
 
-	private extractGroundingSources(groundingMetadata?: GroundingMetadata): GroundingSource[] {
-		const chunks = groundingMetadata?.groundingChunks
-		if (!chunks) {
-			return []
-		}
+	// private extractGroundingSources(groundingMetadata?: GroundingMetadata): GroundingSource[] {
+	// 	const chunks = groundingMetadata?.groundingChunks
+	// 	if (!chunks) {
+	// 		return []
+	// 	}
 
-		return chunks
-			.map((chunk): GroundingSource | null => {
-				const uri = chunk.web?.uri
-				const title = chunk.web?.title || uri || "Unknown Source"
+	// 	return chunks
+	// 		.map((chunk): GroundingSource | null => {
+	// 			const uri = chunk.web?.uri
+	// 			const title = chunk.web?.title || uri || "Unknown Source"
 
-				if (uri) {
-					return { title, url: uri }
-				}
-				return null
-			})
-			.filter((source): source is GroundingSource => source !== null)
-	}
+	// 			if (uri) {
+	// 				return { title, url: uri }
+	// 			}
+	// 			return null
+	// 		})
+	// 		.filter((source): source is GroundingSource => source !== null)
+	// }
 
-	private extractCitationsOnly(groundingMetadata?: GroundingMetadata): string | null {
-		const sources = this.extractGroundingSources(groundingMetadata)
-		if (sources.length === 0) {
-			return null
-		}
+	// private extractCitationsOnly(groundingMetadata?: GroundingMetadata): string | null {
+	// 	const sources = this.extractGroundingSources(groundingMetadata)
+	// 	if (sources.length === 0) {
+	// 		return null
+	// 	}
 
-		const citationLinks = sources.map((source, i) => `[${i + 1}](${source.url})`)
-		return citationLinks.join(", ")
-	}
+	// 	const citationLinks = sources.map((source, i) => `[${i + 1}](${source.url})`)
+	// 	return citationLinks.join(", ")
+	// }
 }
