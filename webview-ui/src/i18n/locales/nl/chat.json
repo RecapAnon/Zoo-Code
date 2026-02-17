@@ -369,6 +369,7 @@
 			"copy_code": "Code kopiëren"
 		}
 	},
+	"systemPromptWarning": "WAARSCHUWING: Aangepaste systeemprompt actief. Dit kan de functionaliteit ernstig verstoren en onvoorspelbaar gedrag veroorzaken.",
 	"profileViolationWarning": "Het huidige profiel is niet compatibel met de instellingen van uw organisatie",
 	"shellIntegration": {
 		"title": "Waarschuwing commando-uitvoering",
