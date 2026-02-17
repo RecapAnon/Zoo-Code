@@ -38,6 +38,7 @@ export interface ExtensionStateContextType extends ExtensionState {
 	showWelcome: boolean
 	theme: any
 	mcpServers: McpServer[]
+	hasSystemPromptOverride?: boolean
 	currentCheckpoint?: string
 	currentTaskTodos?: TodoItem[] // Initial todos for the current task
 	filePaths: string[]

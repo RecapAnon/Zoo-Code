@@ -384,6 +384,7 @@ export type ExtensionState = Pick<
 	lastShownAnnouncementId?: string
 	apiModelId?: string
 	mcpServers?: McpServer[]
+	hasSystemPromptOverride?: boolean
 	mdmCompliant?: boolean
 	taskSyncEnabled: boolean
 	claudeCodeIsAuthenticated?: boolean
@@ -661,6 +662,7 @@ export interface WebviewMessage {
 	newSkillModeSlugs?: string[] // For updateSkillModes (new mode restrictions)
 	requestId?: string
 	ids?: string[]
+	hasSystemPromptOverride?: boolean
 	terminalOperation?: "continue" | "abort"
 	messageTs?: number
 	restoreCheckpoint?: boolean

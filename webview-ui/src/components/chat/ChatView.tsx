@@ -37,6 +37,7 @@ import ChatRow from "./ChatRow"
 import WarningRow from "./WarningRow"
 import { ChatTextArea } from "./ChatTextArea"
 import TaskHeader from "./TaskHeader"
+import SystemPromptWarning from "./SystemPromptWarning"
 import ProfileViolationWarning from "./ProfileViolationWarning"
 import { CheckpointWarning } from "./CheckpointWarning"
 import { QueuedMessages } from "./QueuedMessages"
@@ -85,6 +86,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		setMode,
 		alwaysAllowModeSwitch,
 		customModes,
+		hasSystemPromptOverride,
 		soundEnabled,
 		soundVolume,
 		messageQueue = [],
@@ -1629,6 +1631,12 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 						handleCondenseContext={handleCondenseContext}
 						todos={latestTodos}
 					/>
+
+					{hasSystemPromptOverride && (
+						<div className="px-3">
+							<SystemPromptWarning />
+						</div>
+					)}
 
 					{checkpointWarning && (
 						<div className="px-3">
