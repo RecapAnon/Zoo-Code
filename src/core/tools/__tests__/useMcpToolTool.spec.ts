@@ -676,12 +676,14 @@ describe("useMcpToolTool", () => {
 			mockProviderRef.deref.mockReturnValue({
 				getMcpHub: () => ({
 					callTool: vi.fn().mockResolvedValue(mockToolResult),
-					getAllServers: vi.fn().mockReturnValue([
-						{
-							name: "figma-server",
-							tools: [{ name: "get_screenshot", description: "Get screenshot" }],
-						},
-					]),
+					getAllServers: vi
+						.fn()
+						.mockReturnValue([
+							{
+								name: "figma-server",
+								tools: [{ name: "get_screenshot", description: "Get screenshot" }],
+							},
+						]),
 				}),
 				postMessageToWebview: vi.fn(),
 			})
@@ -788,12 +790,14 @@ describe("useMcpToolTool", () => {
 			mockProviderRef.deref.mockReturnValue({
 				getMcpHub: () => ({
 					callTool: vi.fn().mockResolvedValue(mockToolResult),
-					getAllServers: vi.fn().mockReturnValue([
-						{
-							name: "figma-server",
-							tools: [{ name: "get_screenshot", description: "Get screenshot" }],
-						},
-					]),
+					getAllServers: vi
+						.fn()
+						.mockReturnValue([
+							{
+								name: "figma-server",
+								tools: [{ name: "get_screenshot", description: "Get screenshot" }],
+							},
+						]),
 				}),
 				postMessageToWebview: vi.fn(),
 			})
@@ -848,12 +852,14 @@ describe("useMcpToolTool", () => {
 			mockProviderRef.deref.mockReturnValue({
 				getMcpHub: () => ({
 					callTool: vi.fn().mockResolvedValue(mockToolResult),
-					getAllServers: vi.fn().mockReturnValue([
-						{
-							name: "figma-server",
-							tools: [{ name: "get_screenshots", description: "Get screenshots" }],
-						},
-					]),
+					getAllServers: vi
+						.fn()
+						.mockReturnValue([
+							{
+								name: "figma-server",
+								tools: [{ name: "get_screenshots", description: "Get screenshots" }],
+							},
+						]),
 				}),
 				postMessageToWebview: vi.fn(),
 			})

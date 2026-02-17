@@ -28,7 +28,6 @@ vi.mock("../../../i18n", () => ({
 			"skills:errors.missing_delete_fields": "Missing required fields: skillName or source",
 			"skills:errors.missing_move_fields": "Missing required fields: skillName or source",
 			"skills:errors.skill_not_found": `Skill "${params?.name}" not found`,
-			"skills:errors.cannot_modify_builtin": "Built-in skills cannot be created, deleted, or moved",
 		}
 		return translations[key] || key
 	},
@@ -52,6 +51,7 @@ describe("skillsMessageHandler", () => {
 	const mockDeleteSkill = vi.fn()
 	const mockMoveSkill = vi.fn()
 	const mockGetSkill = vi.fn()
+	const mockFindSkillByNameAndSource = vi.fn()
 
 	const createMockProvider = (hasSkillsManager: boolean = true): ClineProvider => {
 		const skillsManager = hasSkillsManager
@@ -61,6 +61,7 @@ describe("skillsMessageHandler", () => {
 					deleteSkill: mockDeleteSkill,
 					moveSkill: mockMoveSkill,
 					getSkill: mockGetSkill,
+					findSkillByNameAndSource: mockFindSkillByNameAndSource,
 				}
 			: undefined
 
@@ -158,7 +159,7 @@ describe("skillsMessageHandler", () => {
 			} as WebviewMessage)
 
 			expect(result).toEqual(mockSkills)
-			expect(mockCreateSkill).toHaveBeenCalledWith("new-skill", "project", "New skill description", "code")
+			expect(mockCreateSkill).toHaveBeenCalledWith("new-skill", "project", "New skill description", ["code"])
 		})
 
 		it("returns undefined when required fields are missing", async () => {
@@ -331,31 +332,12 @@ describe("skillsMessageHandler", () => {
 				"Failed to move skill: Skills manager not available",
 			)
 		})
-
-		it("returns undefined when trying to move a built-in skill", async () => {
-			const provider = createMockProvider(true)
-
-			const result = await handleMoveSkill(provider, {
-				type: "moveSkill",
-				skillName: "test-skill",
-				source: "built-in",
-				newSkillMode: "code",
-			} as WebviewMessage)
-
-			expect(result).toBeUndefined()
-			expect(mockLog).toHaveBeenCalledWith(
-				"Error moving skill: Built-in skills cannot be created, deleted, or moved",
-			)
-			expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-				"Failed to move skill: Built-in skills cannot be created, deleted, or moved",
-			)
-		})
 	})
 
 	describe("handleOpenSkillFile", () => {
 		it("opens a skill file successfully", async () => {
 			const provider = createMockProvider(true)
-			mockGetSkill.mockReturnValue(mockSkills[0])
+			mockFindSkillByNameAndSource.mockReturnValue(mockSkills[0])
 
 			await handleOpenSkillFile(provider, {
 				type: "openSkillFile",
@@ -363,13 +345,13 @@ describe("skillsMessageHandler", () => {
 				source: "global",
 			} as WebviewMessage)
 
-			expect(mockGetSkill).toHaveBeenCalledWith("test-skill", "global", undefined)
+			expect(mockFindSkillByNameAndSource).toHaveBeenCalledWith("test-skill", "global")
 			expect(openFile).toHaveBeenCalledWith("/path/to/test-skill/SKILL.md")
 		})
 
 		it("opens a skill file with mode restriction", async () => {
 			const provider = createMockProvider(true)
-			mockGetSkill.mockReturnValue(mockSkills[1])
+			mockFindSkillByNameAndSource.mockReturnValue(mockSkills[1])
 
 			await handleOpenSkillFile(provider, {
 				type: "openSkillFile",
@@ -378,7 +360,7 @@ describe("skillsMessageHandler", () => {
 				skillMode: "code",
 			} as WebviewMessage)
 
-			expect(mockGetSkill).toHaveBeenCalledWith("project-skill", "project", "code")
+			expect(mockFindSkillByNameAndSource).toHaveBeenCalledWith("project-skill", "project")
 			expect(openFile).toHaveBeenCalledWith("/project/.roo/skills/project-skill/SKILL.md")
 		})
 
@@ -416,7 +398,7 @@ describe("skillsMessageHandler", () => {
 
 		it("shows error when skill is not found", async () => {
 			const provider = createMockProvider(true)
-			mockGetSkill.mockReturnValue(undefined)
+			mockFindSkillByNameAndSource.mockReturnValue(undefined)
 
 			await handleOpenSkillFile(provider, {
 				type: "openSkillFile",

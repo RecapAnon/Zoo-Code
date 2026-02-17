@@ -125,15 +125,6 @@
 			"generate_stream": "Gemini OAuth generate stream error: {{error}}",
 			"generate_complete_prompt": "Gemini OAuth completion error: {{error}}"
 		},
-		"cerebras": {
-			"authenticationFailed": "Cerebras API authentication failed. Please check your API key is valid and not expired.",
-			"accessForbidden": "Cerebras API access forbidden. Your API key may not have access to the requested model or feature.",
-			"rateLimitExceeded": "Cerebras API rate limit exceeded. Please wait before making another request.",
-			"serverError": "Cerebras API server error ({{status}}). Please try again later.",
-			"genericError": "Cerebras API Error ({{status}}): {{message}}",
-			"noResponseBody": "Cerebras API Error: No response body",
-			"completionError": "Cerebras completion error: {{error}}"
-		},
 		"roo": {
 			"authenticationRequired": "Roo provider requires cloud authentication. Please sign in to Roo Code Cloud."
 		},
