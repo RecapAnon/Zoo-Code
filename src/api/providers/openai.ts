@@ -101,11 +101,18 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 			content: systemPrompt,
 		}
 
+		// When strict tool message ordering is enabled, merge text content after tool_results
+		// into the last tool message instead of creating a separate user message.
+		// This is required for providers like NVIDIA NIM that don't allow user messages after tool messages.
+		const strictToolMessageOrdering = this.options.openAiStrictToolMessageOrdering ?? false
+
 		if (this.options.openAiStreamingEnabled ?? true) {
 			let convertedMessages
 
 			if (deepseekReasoner) {
-				convertedMessages = convertToR1Format([{ role: "user", content: systemPrompt }, ...messages])
+				convertedMessages = convertToR1Format([{ role: "user", content: systemPrompt }, ...messages], {
+					mergeToolResultText: strictToolMessageOrdering,
+				})
 			} else {
 				if (modelInfo.supportsPromptCache) {
 					systemMessage = {
@@ -121,7 +128,10 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 					}
 				}
 
-				convertedMessages = [systemMessage, ...convertToOpenAiMessages(messages)]
+				convertedMessages = [
+					systemMessage,
+					...convertToOpenAiMessages(messages, { mergeToolResultText: strictToolMessageOrdering }),
+				]
 
 				if (modelInfo.supportsPromptCache) {
 					// Note: the following logic is copied from openrouter:
@@ -224,8 +234,13 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 			const requestOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
 				model: modelId,
 				messages: deepseekReasoner
-					? convertToR1Format([{ role: "user", content: systemPrompt }, ...messages])
-					: [systemMessage, ...convertToOpenAiMessages(messages)],
+					? convertToR1Format([{ role: "user", content: systemPrompt }, ...messages], {
+							mergeToolResultText: strictToolMessageOrdering,
+						})
+					: [
+							systemMessage,
+							...convertToOpenAiMessages(messages, { mergeToolResultText: strictToolMessageOrdering }),
+						],
 				// Tools are always present (minimum ALWAYS_AVAILABLE_TOOLS)
 				tools: this.convertToolsForOpenAI(metadata?.tools),
 				tool_choice: metadata?.tool_choice,
@@ -334,6 +349,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 	): ApiStream {
 		const modelInfo = this.getModel().info
 		const methodIsAzureAiInference = this._isAzureAiInference(this.options.openAiBaseUrl)
+		const strictToolMessageOrdering = this.options.openAiStrictToolMessageOrdering ?? false
 
 		if (this.options.openAiStreamingEnabled ?? true) {
 			const isGrokXAI = this._isGrokXAI(this.options.openAiBaseUrl)
@@ -345,7 +361,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 						role: "developer",
 						content: `Formatting re-enabled\n${systemPrompt}`,
 					},
-					...convertToOpenAiMessages(messages),
+					...convertToOpenAiMessages(messages, { mergeToolResultText: strictToolMessageOrdering }),
 				],
 				stream: true,
 				...(isGrokXAI ? {} : { stream_options: { include_usage: true } }),
@@ -381,7 +397,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 						role: "developer",
 						content: `Formatting re-enabled\n${systemPrompt}`,
 					},
-					...convertToOpenAiMessages(messages),
+					...convertToOpenAiMessages(messages, { mergeToolResultText: strictToolMessageOrdering }),
 				],
 				reasoning_effort: modelInfo.reasoningEffort as "low" | "medium" | "high" | undefined,
 				temperature: undefined,
