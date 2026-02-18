@@ -3,7 +3,6 @@ import {
 	type ModelInfo,
 	anthropicModels,
 	bedrockModels,
-	codexOauthModels,
 	geminiOauthModels,
 	deepSeekModels,
 	moonshotModels,
@@ -23,7 +22,6 @@ import {
 
 export const MODELS_BY_PROVIDER: Partial<Record<ProviderName, Record<string, ModelInfo>>> = {
 	anthropic: anthropicModels,
-	"codex-oauth": codexOauthModels,
 	bedrock: bedrockModels,
 	deepseek: deepSeekModels,
 	moonshot: moonshotModels,
@@ -45,7 +43,6 @@ export const MODELS_BY_PROVIDER: Partial<Record<ProviderName, Record<string, Mod
 export const PROVIDERS = [
 	{ value: "openrouter", label: "OpenRouter", proxy: false },
 	{ value: "anthropic", label: "Anthropic", proxy: false },
-	{ value: "codex-oauth", label: "Codex OAuth" },
 	{ value: "gemini-oauth", label: "Gemini OAuth" },
 	{ value: "gemini", label: "Google Gemini", proxy: false },
 	{ value: "deepseek", label: "DeepSeek", proxy: false },

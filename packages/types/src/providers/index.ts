@@ -16,7 +16,6 @@ export * from "./openai-codex-rate-limits.js"
 export * from "./openrouter.js"
 export * from "./qwen-code.js"
 export * from "./requesty.js"
-export * from "./codex-oauth.js"
 export * from "./roo.js"
 export * from "./sambanova.js"
 export * from "./vertex.js"
@@ -36,7 +35,6 @@ import { geminiOauthDefaultModelId } from "./gemini-oauth.js"
 import { litellmDefaultModelId } from "./lite-llm.js"
 import { mistralDefaultModelId } from "./mistral.js"
 import { moonshotDefaultModelId } from "./moonshot.js"
-import { openAiNativeDefaultModelId } from "./openai.js"
 import { openAiCodexDefaultModelId } from "./openai-codex.js"
 import { openRouterDefaultModelId } from "./openrouter.js"
 import { qwenCodeDefaultModelId } from "./qwen-code.js"
@@ -49,7 +47,6 @@ import { xaiDefaultModelId } from "./xai.js"
 import { vercelAiGatewayDefaultModelId } from "./vercel-ai-gateway.js"
 import { internationalZAiDefaultModelId, mainlandZAiDefaultModelId } from "./zai.js"
 import { minimaxDefaultModelId } from "./minimax.js"
-import { codexOauthDefaultModelId } from "./codex-oauth.js"
 
 // Import the ProviderName type from provider-settings to avoid duplication
 import type { ProviderName } from "../provider-settings.js"
@@ -91,7 +88,7 @@ export function getProviderDefaultModelId(
 		case "zai":
 			return options?.isChina ? mainlandZAiDefaultModelId : internationalZAiDefaultModelId
 		case "openai-native":
-			return openAiNativeDefaultModelId
+			return "gpt-4o" // Based on openai-native patterns
 		case "openai-codex":
 			return openAiCodexDefaultModelId
 		case "mistral":
@@ -112,8 +109,6 @@ export function getProviderDefaultModelId(
 			return rooDefaultModelId
 		case "qwen-code":
 			return qwenCodeDefaultModelId
-		case "codex-oauth":
-			return codexOauthDefaultModelId
 		case "vercel-ai-gateway":
 			return vercelAiGatewayDefaultModelId
 		case "anthropic":

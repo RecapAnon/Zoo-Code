@@ -15,7 +15,6 @@ import {
 	openAiNativeDefaultModelId,
 	openAiCodexDefaultModelId,
 	anthropicDefaultModelId,
-	codexOauthDefaultModelId,
 	geminiOauthDefaultModelId,
 	qwenCodeDefaultModelId,
 	geminiDefaultModelId,
@@ -70,7 +69,6 @@ import {
 	Anthropic,
 	Baseten,
 	Bedrock,
-	CodexOAuth,
 	GeminiOAuth,
 	DeepSeek,
 	Gemini,
@@ -337,7 +335,6 @@ const ApiOptions = ({
 				litellm: { field: "litellmModelId", default: litellmDefaultModelId },
 				anthropic: { field: "apiModelId", default: anthropicDefaultModelId },
 				"openai-codex": { field: "apiModelId", default: openAiCodexDefaultModelId },
-				"codex-oauth": { field: "apiModelId", default: codexOauthDefaultModelId },
 				"gemini-oauth": { field: "apiModelId", default: geminiOauthDefaultModelId },
 				"qwen-code": { field: "apiModelId", default: qwenCodeDefaultModelId },
 				"openai-native": { field: "apiModelId", default: openAiNativeDefaultModelId },
@@ -538,14 +535,6 @@ const ApiOptions = ({
 							setApiConfigurationField={setApiConfigurationField}
 							simplifySettings={fromWelcomeView}
 							openAiCodexIsAuthenticated={openAiCodexIsAuthenticated}
-						/>
-					)}
-
-					{selectedProvider === "codex-oauth" && (
-						<CodexOAuth
-							apiConfiguration={apiConfiguration}
-							setApiConfigurationField={setApiConfigurationField}
-							simplifySettings={fromWelcomeView}
 						/>
 					)}
 

@@ -32,7 +32,6 @@ import {
 	VercelAiGatewayHandler,
 	MiniMaxHandler,
 	BasetenHandler,
-	CodexOAuthHandler,
 	GeminiOAuthHandler,
 } from "./providers"
 import { NativeOllamaHandler } from "./providers/native-ollama"
@@ -147,8 +146,6 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			return new DeepSeekHandler(options)
 		case "qwen-code":
 			return new QwenCodeHandler(options)
-		case "codex-oauth":
-			return new CodexOAuthHandler(options)
 		case "moonshot":
 			return new MoonshotHandler(options)
 		case "vscode-lm":

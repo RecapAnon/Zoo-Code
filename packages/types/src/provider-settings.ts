@@ -6,7 +6,6 @@ import {
 	anthropicModels,
 	basetenModels,
 	bedrockModels,
-	codexOauthModels,
 	deepSeekModels,
 	fireworksModels,
 	geminiModels,
@@ -107,7 +106,6 @@ export const providerNames = [
 	"anthropic",
 	"bedrock",
 	"baseten",
-	"codex-oauth",
 	"deepseek",
 	"fireworks",
 	"gemini",
@@ -204,10 +202,6 @@ const anthropicSchema = apiModelIdProviderModelSchema.extend({
 	anthropicBaseUrl: z.string().optional(),
 	anthropicUseAuthToken: z.boolean().optional(),
 	anthropicBeta1MContext: z.boolean().optional(), // Enable 'context-1m-2025-08-07' beta for 1M context window.
-})
-
-const codexOauthSchema = apiModelIdProviderModelSchema.extend({
-	codexOauthPath: z.string().optional(),
 })
 
 const openRouterSchema = baseProviderSettingsSchema.extend({
@@ -397,7 +391,6 @@ const defaultSchema = z.object({
 
 export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProvider", [
 	anthropicSchema.merge(z.object({ apiProvider: z.literal("anthropic") })),
-	codexOauthSchema.merge(z.object({ apiProvider: z.literal("codex-oauth") })),
 	openRouterSchema.merge(z.object({ apiProvider: z.literal("openrouter") })),
 	bedrockSchema.merge(z.object({ apiProvider: z.literal("bedrock") })),
 	vertexSchema.merge(z.object({ apiProvider: z.literal("vertex") })),
@@ -431,7 +424,6 @@ export const providerSettingsSchemaDiscriminated = z.discriminatedUnion("apiProv
 export const providerSettingsSchema = z.object({
 	apiProvider: providerNamesWithRetiredSchema.optional(),
 	...anthropicSchema.shape,
-	...codexOauthSchema.shape,
 	...openRouterSchema.shape,
 	...bedrockSchema.shape,
 	...vertexSchema.shape,
@@ -508,7 +500,6 @@ export const isTypicalProvider = (key: unknown): key is TypicalProvider =>
 
 export const modelIdKeysByProvider: Record<TypicalProvider, ModelIdKey> = {
 	anthropic: "apiModelId",
-	"codex-oauth": "apiModelId",
 	openrouter: "openRouterModelId",
 	bedrock: "apiModelId",
 	vertex: "apiModelId",
@@ -582,7 +573,6 @@ export const MODELS_BY_PROVIDER: Record<
 		label: "Amazon Bedrock",
 		models: Object.keys(bedrockModels),
 	},
-	"codex-oauth": { id: "codex-oauth", label: "Codex OAuth", models: Object.keys(codexOauthModels) },
 	deepseek: {
 		id: "deepseek",
 		label: "DeepSeek",

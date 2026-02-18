@@ -18,7 +18,6 @@ import {
 	vscodeLlmModels,
 	vscodeLlmDefaultModelId,
 	openAiCodexModels,
-	codexOauthModels,
 	geminiOauthModels,
 	sambaNovaModels,
 	internationalZAiModels,
@@ -298,11 +297,6 @@ function getSelectedModel({
 			const modelFamily = apiConfiguration?.vsCodeLmModelSelector?.family ?? vscodeLlmDefaultModelId
 			const info = vscodeLlmModels[modelFamily as keyof typeof vscodeLlmModels]
 			return { id, info: { ...openAiModelInfoSaneDefaults, ...info, supportsImages: false } } // VSCode LM API currently doesn't support images.
-		}
-		case "codex-oauth": {
-			const id = apiConfiguration.apiModelId ?? defaultModelId
-			const info = codexOauthModels[id as keyof typeof codexOauthModels]
-			return { id, info }
 		}
 		case "gemini-oauth": {
 			const id = apiConfiguration.apiModelId ?? defaultModelId
