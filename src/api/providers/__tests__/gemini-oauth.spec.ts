@@ -2,15 +2,23 @@
 
 import { Anthropic } from "@anthropic-ai/sdk"
 
+// Mock TelemetryService - must come before other imports
+vi.mock("@roo-code/telemetry", () => ({
+	TelemetryService: {
+		instance: {
+			captureException: vi.fn(),
+		},
+	},
+}))
+
 import { GeminiOAuthHandler } from "../gemini-oauth"
 import type { ApiHandlerOptions } from "../../../shared/api"
 import { geminiOAuthManager } from "../../../integrations/gemini-oauth/oauth"
 
 vi.mock("../../../integrations/gemini-oauth/oauth", () => ({
 	geminiOAuthManager: {
-		getAccessToken: vi.fn(),
-		getProjectId: vi.fn(),
-		forceRefreshAccessToken: vi.fn(),
+		ensureAuthenticated: vi.fn(),
+		getAuthClient: vi.fn(),
 	},
 }))
 
@@ -36,11 +44,16 @@ describe("GeminiOAuthHandler", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		global.fetch = mockFetch as any
-		;(geminiOAuthManager.getAccessToken as any).mockResolvedValue("test-access-token")
-		;(geminiOAuthManager.getProjectId as any).mockResolvedValue("test-project")
+		;(geminiOAuthManager.ensureAuthenticated as any).mockResolvedValue({
+			access_token: "test-access-token",
+			expiry_date: Date.now() + 3600 * 1000,
+		})
+		;(geminiOAuthManager.getAuthClient as any).mockReturnValue({
+			request: mockFetch,
+		})
 		options = {
 			apiModelId: "gemini-2.5-pro",
-			geminiOauthPath: "~/.roo/gemini-oauth.json",
+			geminiOauthPath: "~/.gemini/oauth_creds.json",
 			geminiOauthProjectId: "test-project",
 		}
 		handler = new GeminiOAuthHandler(options)
@@ -57,8 +70,7 @@ describe("GeminiOAuthHandler", () => {
 		])
 
 		mockFetch.mockResolvedValue({
-			ok: true,
-			body: stream,
+			data: stream,
 		})
 
 		const iterator = handler.createMessage(systemPrompt, messages)
@@ -75,21 +87,18 @@ describe("GeminiOAuthHandler", () => {
 		)
 
 		expect(mockFetch).toHaveBeenCalledWith(
-			"https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
 			expect.objectContaining({
+				url: "https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent",
 				method: "POST",
+				params: { alt: "sse" },
 				headers: expect.objectContaining({
 					Accept: "text/event-stream",
-					Authorization: "Bearer test-access-token",
-					"User-Agent": "google-api-nodejs-client/9.15.1",
-					"X-Goog-Api-Client": "gl-node/22.17.0",
-					"Client-Metadata": "ideType=IDE_UNSPECIFIED,platform=PLATFORM_UNSPECIFIED,pluginType=GEMINI",
 				}),
-				body: expect.any(String),
+				data: expect.any(String),
 			}),
 		)
 
-		const body = JSON.parse((mockFetch.mock.calls[0][1] as any).body as string)
+		const body = JSON.parse((mockFetch.mock.calls[0][0] as any).data as string)
 		expect(body.project).toBe("test-project")
 		expect(body.model).toBe("gemini-2.5-pro")
 		expect(body.request.systemInstruction.parts[0].text).toBe(systemPrompt)
@@ -99,50 +108,28 @@ describe("GeminiOAuthHandler", () => {
 
 	it("uses generateContent for completePrompt", async () => {
 		mockFetch.mockResolvedValue({
-			ok: true,
-			json: vi.fn().mockResolvedValue({
-				response: {
-					candidates: [{ content: { parts: [{ text: "Prompt response" }] } }],
-				},
-			}),
+			data: {
+				candidates: [{ content: { parts: [{ text: "Prompt response" }] } }],
+			},
 		})
 
 		const result = await handler.completePrompt("Hello prompt")
 		expect(result).toBe("Prompt response")
 		expect(mockFetch).toHaveBeenCalledWith(
-			"https://cloudcode-pa.googleapis.com/v1internal:generateContent",
 			expect.objectContaining({
+				url: "https://cloudcode-pa.googleapis.com/v1internal:generateContent",
 				method: "POST",
 				headers: expect.objectContaining({
 					Accept: "application/json",
 				}),
-				body: expect.any(String),
+				data: expect.any(String),
 			}),
 		)
 	})
 
-	it("uses countTokens without project/model envelope fields", async () => {
-		mockFetch.mockResolvedValue({
-			ok: true,
-			json: vi.fn().mockResolvedValue({ response: { totalTokens: 123 } }),
-		})
-
+	it("uses local token counting for countTokens", async () => {
 		const total = await handler.countTokens([{ type: "text", text: "Hello" }])
-		expect(total).toBe(123)
-		expect(mockFetch).toHaveBeenCalledWith(
-			"https://cloudcode-pa.googleapis.com/v1internal:countTokens",
-			expect.objectContaining({
-				method: "POST",
-				headers: expect.objectContaining({
-					Accept: "application/json",
-				}),
-				body: expect.any(String),
-			}),
-		)
-		const body = JSON.parse((mockFetch.mock.calls[0][1] as any).body as string)
-		expect(body.project).toBeUndefined()
-		expect(body.model).toBeUndefined()
-		expect(body.request).toBeDefined()
+		expect(total).toBeGreaterThan(0)
 	})
 
 	it("maps tool_result ids to tool names when history lacks tool_use", async () => {
@@ -153,7 +140,7 @@ describe("GeminiOAuthHandler", () => {
 			},
 		]
 		const stream = buildSseStream(["data: [DONE]"])
-		mockFetch.mockResolvedValue({ ok: true, body: stream })
+		mockFetch.mockResolvedValue({ data: stream })
 
 		const iterator = handler.createMessage(systemPrompt, toolMessages, {
 			taskId: "test-task",
@@ -172,7 +159,7 @@ describe("GeminiOAuthHandler", () => {
 			// consume
 		}
 
-		const body = JSON.parse((mockFetch.mock.calls[0][1] as any).body as string)
+		const body = JSON.parse((mockFetch.mock.calls[0][0] as any).data as string)
 		const toolParts = body.request.contents
 			.flatMap((content: any) => content.parts || [])
 			.filter((part: any) => part.functionResponse)
@@ -188,14 +175,14 @@ describe("GeminiOAuthHandler", () => {
 			},
 		]
 		const stream = buildSseStream(["data: [DONE]"])
-		mockFetch.mockResolvedValue({ ok: true, body: stream })
+		mockFetch.mockResolvedValue({ data: stream })
 
 		const iterator = handler.createMessage(systemPrompt, toolMessages)
 		for await (const _chunk of iterator) {
 			// consume
 		}
 
-		const body = JSON.parse((mockFetch.mock.calls[0][1] as any).body as string)
+		const body = JSON.parse((mockFetch.mock.calls[0][0] as any).data as string)
 		const toolParts = body.request.contents
 			.flatMap((content: any) => content.parts || [])
 			.filter((part: any) => part.functionResponse)

@@ -1,5 +1,11 @@
 import { Anthropic } from "@anthropic-ai/sdk"
-import { type GenerateContentResponseUsageMetadata, type GroundingMetadata } from "@google/genai"
+import {
+	FunctionCallingConfigMode,
+	type GenerateContentConfig,
+	type GenerateContentParameters,
+	type GenerateContentResponseUsageMetadata,
+	type GroundingMetadata,
+} from "@google/genai"
 import { v7 as uuidv7 } from "uuid"
 import {
 	type ModelInfo,
@@ -10,126 +16,47 @@ import {
 } from "@roo-code/types"
 import { TelemetryService } from "@roo-code/telemetry"
 import { t } from "i18next"
-
 import type { ApiHandlerOptions } from "../../shared/api"
 import { getModelParams } from "../transform/model-params"
 import { convertAnthropicMessageToGemini } from "../transform/gemini-format"
-import type { ApiStream, ApiStreamUsageChunk, GroundingSource } from "../transform/stream"
-
+import type { ApiStream, GroundingSource } from "../transform/stream"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { BaseProvider } from "./base-provider"
 import { geminiOAuthManager } from "../../integrations/gemini-oauth/oauth"
-import { isMcpTool } from "../../utils/mcp-name"
 
 const CODE_ASSIST_BASE_URL = "https://cloudcode-pa.googleapis.com"
 const CODE_ASSIST_VERSION = "v1internal"
-
-const GEMINI_CLI_USER_AGENT = "google-api-nodejs-client/9.15.1"
-const GEMINI_CLI_API_CLIENT = "gl-node/22.17.0"
-const GEMINI_CLI_CLIENT_METADATA = "ideType=IDE_UNSPECIFIED,platform=PLATFORM_UNSPECIFIED,pluginType=GEMINI"
 
 interface GeminiOAuthHandlerOptions extends ApiHandlerOptions {
 	geminiOauthPath?: string
 	geminiOauthProjectId?: string
 }
 
-type FunctionCallingConfigMode = "AUTO" | "NONE" | "ANY"
-
-
 type GeminiOAuthModel = ReturnType<GeminiOAuthHandler["getModel"]>
-
-function ensureAllRequired(schema: any): any {
-	if (!schema || typeof schema !== "object" || schema.type !== "object") {
-		return schema
-	}
-
-	const result = { ...schema }
-	if (result.additionalProperties !== false) {
-		result.additionalProperties = false
-	}
-
-	if (result.properties) {
-		const allKeys = Object.keys(result.properties)
-		result.required = allKeys
-
-		const newProps = { ...result.properties }
-		for (const key of allKeys) {
-			const prop = newProps[key]
-			if (prop?.type === "object") {
-				newProps[key] = ensureAllRequired(prop)
-			} else if (prop?.type === "array" && prop.items?.type === "object") {
-				newProps[key] = {
-					...prop,
-					items: ensureAllRequired(prop.items),
-				}
-			}
-		}
-		result.properties = newProps
-	}
-
-	return result
-}
-
-function ensureAdditionalPropertiesFalse(schema: any): any {
-	if (!schema || typeof schema !== "object" || schema.type !== "object") {
-		return schema
-	}
-
-	const result = { ...schema }
-	if (result.additionalProperties !== false) {
-		result.additionalProperties = false
-	}
-
-	if (result.properties) {
-		const newProps = { ...result.properties }
-		for (const key of Object.keys(result.properties)) {
-			const prop = newProps[key]
-			if (prop?.type === "object") {
-				newProps[key] = ensureAdditionalPropertiesFalse(prop)
-			} else if (prop?.type === "array" && prop.items?.type === "object") {
-				newProps[key] = {
-					...prop,
-					items: ensureAdditionalPropertiesFalse(prop.items),
-				}
-			}
-		}
-		result.properties = newProps
-	}
-
-	return result
-}
 
 export class GeminiOAuthHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: GeminiOAuthHandlerOptions
 	private lastThoughtSignature?: string
 	private lastResponseId?: string
 	private readonly sessionId: string
-	private abortController?: AbortController
 	private readonly providerName = "Gemini"
 
 	constructor(options: GeminiOAuthHandlerOptions) {
 		super()
 		this.options = options
-		this.sessionId = uuidv7()
+		this.sessionId = uuidv7() // Initialize OAuth2 client
 	}
 
-	private async ensureAuthenticated(): Promise<void> {
-		const accessToken = await geminiOAuthManager.getAccessToken({ path: this.options.geminiOauthPath })
-		if (!accessToken) {
-			throw new Error(
-				t("common:errors.geminiOauth.notAuthenticated", {
-					defaultValue:
-						"Not authenticated with Gemini OAuth. Please sign in using the Gemini OAuth flow.",
-				}),
-			)
+	private getAuthHeaders(streaming: boolean, taskId?: string): Record<string, string> {
+		return {
+			"Content-Type": "application/json",
+			Accept: streaming ? "text/event-stream" : "application/json",
+			session_id: taskId || this.sessionId,
 		}
 	}
 
-	private async getProjectId(): Promise<string> {
-		const projectId = await geminiOAuthManager.getProjectId({
-			path: this.options.geminiOauthPath,
-			projectIdOverride: this.options.geminiOauthProjectId,
-		})
+	private getProjectId(): string {
+		const projectId = this.options.geminiOauthProjectId
 		if (!projectId) {
 			throw new Error(
 				t("common:errors.geminiOauth.missingProjectId", {
@@ -140,63 +67,48 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		return projectId
 	}
 
-	private getAuthHeaders(streaming: boolean, accessToken: string, taskId?: string): Record<string, string> {
-		return {
-			Authorization: `Bearer ${accessToken}`,
-			"Content-Type": "application/json",
-			Accept: streaming ? "text/event-stream" : "application/json",
-			"User-Agent": GEMINI_CLI_USER_AGENT,
-			"X-Goog-Api-Client": GEMINI_CLI_API_CLIENT,
-			"Client-Metadata": GEMINI_CLI_CLIENT_METADATA,
-			originator: "roo-code",
-			session_id: taskId || this.sessionId,
-		}
-	}
-
-	private normalizeUsage(usage: any): ApiStreamUsageChunk | undefined {
-		if (!usage) return undefined
-
-		const inputTokens = usage.promptTokenCount ?? usage.prompt_tokens ?? 0
-		const outputTokens = usage.candidatesTokenCount ?? usage.completion_tokens ?? 0
-		const cacheReadTokens = usage.cachedContentTokenCount
-		const reasoningTokens = usage.thoughtsTokenCount
-
-		const out: ApiStreamUsageChunk = {
-			type: "usage",
-			inputTokens,
-			outputTokens,
-			...(typeof cacheReadTokens === "number" ? { cacheReadTokens } : {}),
-			...(typeof reasoningTokens === "number" ? { reasoningTokens } : {}),
-			totalCost: 0,
-		}
-		return out
-	}
-
 	private buildRequestPayload(
 		systemInstruction: string,
 		messages: Anthropic.Messages.MessageParam[],
 		metadata: ApiHandlerCreateMessageMetadata | undefined,
 	) {
-		const { id: modelId, info, reasoning: thinkingConfig, maxTokens } = this.getModel()
-
+		const { id: model, info, reasoning: thinkingConfig, maxTokens } = this.getModel()
+		// Reset per-request metadata that we persist into apiConversationHistory.
 		this.lastThoughtSignature = undefined
 		this.lastResponseId = undefined
 
+		// For hybrid/budget reasoning models (e.g. Gemini 2.5 Pro), respect user-configured
+		// modelMaxTokens so the ThinkingBudget slider can control the cap. For effort-only or
+		// standard models (like gemini-3-pro-preview), ignore any stale modelMaxTokens and
+		// default to the model's computed maxTokens from getModelMaxOutputTokens.
 		const isHybridReasoningModel = info.supportsReasoningBudget || info.requiredReasoningBudget
 		const maxOutputTokens = isHybridReasoningModel
 			? (this.options.modelMaxTokens ?? maxTokens ?? undefined)
 			: (maxTokens ?? undefined)
 
+		// Gemini 3 validates thought signatures for tool/function calling steps.
+		// We must round-trip the signature when tools are in use, even if the user chose
+		// a minimal thinking level (or thinkingConfig is otherwise absent).
 		const includeThoughtSignatures = Boolean(thinkingConfig) || Boolean(metadata?.tools?.length)
 
+		// The message list can include provider-specific meta entries such as
+		// `{ type: "reasoning", ... }` that are intended only for providers like
+		// openai-native. Gemini should never see those; they are not valid
+		// Anthropic.MessageParam values and will cause failures (e.g. missing
+		// `content` for the converter). Filter them out here.
 		type ReasoningMetaLike = { type?: string }
-		const geminiMessages = messages.filter((message: ReasoningMetaLike & { role?: string }) => {
-			if ((message as ReasoningMetaLike).type === "reasoning") {
+
+		const geminiMessages = messages.filter((message): message is Anthropic.Messages.MessageParam => {
+			const meta = message as ReasoningMetaLike
+			if (meta.type === "reasoning") {
 				return false
 			}
 			return true
 		})
 
+		// Build a map of tool IDs to names from previous messages
+		// This is needed because Anthropic's tool_result blocks only contain the ID,
+		// but Gemini requires the name in functionResponse
 		const toolIdToName = new Map<string, string>()
 		for (const message of messages) {
 			if (Array.isArray(message.content)) {
@@ -208,77 +120,52 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 			}
 		}
 
-		const validToolNames = new Set(
-			metadata?.tools?.filter((tool) => tool.type === "function").map((tool) => tool.function.name) ?? [],
-		)
-
-		for (const message of messages) {
-			if (!Array.isArray(message.content)) {
-				continue
-			}
-			for (const block of message.content) {
-				if (block.type !== "tool_result") {
-					continue
-				}
-				if (toolIdToName.has(block.tool_use_id)) {
-					continue
-				}
-				const match = /^(.*)-\d+$/.exec(block.tool_use_id)
-				if (!match) {
-					continue
-				}
-				const candidateName = match[1]
-				if (validToolNames.size === 0 || validToolNames.has(candidateName)) {
-					toolIdToName.set(block.tool_use_id, candidateName)
-				}
-			}
-		}
-
 		const contents = geminiMessages
 			.map((message) => convertAnthropicMessageToGemini(message, { includeThoughtSignatures, toolIdToName }))
 			.flat()
 
-		const tools: Array<{ functionDeclarations?: any[]; googleSearch?: Record<string, unknown>; urlContext?: any }> = []
-		const toolProtocol = (metadata as { toolProtocol?: string } | undefined)?.toolProtocol
-		const allowTools = toolProtocol !== "xml"
-		const hasDeclaredTools = allowTools && metadata?.tools && metadata.tools.length > 0
-		if (hasDeclaredTools) {
-			tools.push({
-				functionDeclarations: metadata!.tools!
-					.filter((tool) => tool.type === "function")
-					.map((tool) => {
-						const isMcp = isMcpTool(tool.function.name)
-						return {
-							name: tool.function.name,
-							description: tool.function.description,
-							parametersJsonSchema: isMcp
-								? ensureAdditionalPropertiesFalse(tool.function.parameters)
-								: ensureAllRequired(tool.function.parameters),
-						}
-					}),
-			})
-		} else {
-			if (this.options.enableUrlContext) {
-				tools.push({ urlContext: {} })
-			}
+		// Tools are always present (minimum ALWAYS_AVAILABLE_TOOLS).
+		// Google built-in tools (Grounding, URL Context) are mutually exclusive
+		// with function declarations in the Gemini API, so we always use
+		// function declarations when tools are provided.
+		const tools: GenerateContentConfig["tools"] = [
+			{
+				functionDeclarations: (metadata?.tools ?? []).map((tool) => ({
+					name: (tool as any).function.name,
+					description: (tool as any).function.description,
+					parametersJsonSchema: (tool as any).function.parameters,
+				})),
+			},
+		]
 
-			if (this.options.enableGrounding) {
-				tools.push({ googleSearch: {} })
-			}
-		}
-
+		// Determine temperature respecting model capabilities and defaults:
+		// - If supportsTemperature is explicitly false, ignore user overrides
+		//   and pin to the model's defaultTemperature (or omit if undefined).
+		// - Otherwise, allow the user setting to override, falling back to model default,
+		//   then to 1 for Gemini provider default.
 		const supportsTemperature = info.supportsTemperature !== false
 		const temperatureConfig: number | undefined = supportsTemperature
 			? (this.options.modelTemperature ?? info.defaultTemperature ?? 1)
 			: info.defaultTemperature
 
-		let toolConfig:
-			| { functionCallingConfig: { mode: FunctionCallingConfigMode; allowedFunctionNames?: string[] } }
-			| undefined
+		const config: GenerateContentConfig = {
+			systemInstruction,
+			httpOptions: this.options.googleGeminiBaseUrl ? { baseUrl: this.options.googleGeminiBaseUrl } : undefined,
+			thinkingConfig,
+			maxOutputTokens,
+			temperature: temperatureConfig,
+			...(tools.length > 0 ? { tools } : {}),
+		}
+
+		// Handle allowedFunctionNames for mode-restricted tool access.
+		// When provided, all tool definitions are passed to the model (so it can reference
+		// historical tool calls in conversation), but only the specified tools can be invoked.
+		// This takes precedence over tool_choice to ensure mode restrictions are honored.
 		if (metadata?.allowedFunctionNames && metadata.allowedFunctionNames.length > 0) {
-			toolConfig = {
+			config.toolConfig = {
 				functionCallingConfig: {
-					mode: "ANY",
+					// Use ANY mode to allow calling any of the allowed functions
+					mode: FunctionCallingConfigMode.ANY,
 					allowedFunctionNames: metadata.allowedFunctionNames,
 				},
 			}
@@ -286,26 +173,31 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 			const choice = metadata.tool_choice
 			let mode: FunctionCallingConfigMode
 			let allowedFunctionNames: string[] | undefined
+
 			if (choice === "auto") {
-				mode = "AUTO"
+				mode = FunctionCallingConfigMode.AUTO
 			} else if (choice === "none") {
-				mode = "NONE"
+				mode = FunctionCallingConfigMode.NONE
 			} else if (choice === "required") {
-				mode = "ANY"
+				// "required" means the model must call at least one tool; Gemini uses ANY for this.
+				mode = FunctionCallingConfigMode.ANY
 			} else if (typeof choice === "object" && "function" in choice && choice.type === "function") {
-				mode = "ANY"
+				mode = FunctionCallingConfigMode.ANY
 				allowedFunctionNames = [choice.function.name]
 			} else {
-				mode = "AUTO"
+				// Fall back to AUTO for unknown values to avoid unintentionally broadening tool access.
+				mode = FunctionCallingConfigMode.AUTO
 			}
 
-			toolConfig = {
+			config.toolConfig = {
 				functionCallingConfig: {
 					mode,
 					...(allowedFunctionNames ? { allowedFunctionNames } : {}),
 				},
 			}
 		}
+
+		const params: GenerateContentParameters = { model, contents, config }
 
 		const generationConfig: Record<string, unknown> = {}
 		if (thinkingConfig) {
@@ -334,141 +226,218 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		if (tools.length > 0) {
 			request.tools = tools
 		}
-		if (toolConfig) {
-			request.toolConfig = toolConfig
+		if (config.toolConfig) {
+			request.toolConfig = config.toolConfig
 		}
 		if (Object.keys(generationConfig).length > 0) {
 			request.generationConfig = generationConfig
 		}
 
-		return { modelId, info, request }
+		return { request, ...params }
+	}
+
+	/**
+	 * Parse Server-Sent Events from a stream
+	 */
+	private async *parseSSEStream(stream: NodeJS.ReadableStream): AsyncGenerator<any> {
+		let buffer = ""
+
+		for await (const chunk of stream) {
+			const chunkText =
+				typeof chunk === "string"
+					? chunk
+					: Buffer.isBuffer(chunk)
+						? chunk.toString("utf-8")
+						: Buffer.from(chunk as Uint8Array).toString("utf-8")
+			buffer += chunkText
+			const lines = buffer.split("\n")
+			buffer = lines.pop() || ""
+			for (const line of lines) {
+				const trimmed = line.trim()
+				if (!trimmed || trimmed.startsWith(":")) {
+					continue
+				}
+				if (!trimmed.startsWith("data:")) {
+					continue
+				}
+				const payload = trimmed.slice(5).trim()
+				if (!payload || payload === "[DONE]") {
+					continue
+				}
+
+				try {
+					const parsed = JSON.parse(payload)
+					yield parsed
+				} catch (e) {
+					console.error("Error parsing SSE data:", e)
+				}
+			}
+		}
 	}
 
 	private async *handleStreamResponse(
-		body: ReadableStream<Uint8Array>,
+		body: NodeJS.ReadableStream,
 		model: GeminiOAuthModel,
 		includeThoughtSignatures: boolean,
 	): ApiStream {
-		const reader = body.getReader()
-		const decoder = new TextDecoder()
-		let buffer = ""
 		let lastUsageMetadata: GenerateContentResponseUsageMetadata | undefined
 		let pendingGroundingMetadata: GroundingMetadata | undefined
+		let finalResponse: { responseId?: string } | undefined
+		let finishReason: string | undefined
+
 		let toolCallCounter = 0
 		let hasContent = false
+		let hasReasoning = false
 
 		try {
-			while (true) {
-				const { done, value } = await reader.read()
-				if (done) break
+			for await (const jsonData of this.parseSSEStream(body)) {
+				// Extract content from the response
+				const response = jsonData.response || jsonData
+				if (response?.responseId) {
+					this.lastResponseId = response.responseId
+				}
 
-				buffer += decoder.decode(value, { stream: true })
-				const lines = buffer.split("\n")
-				buffer = lines.pop() ?? ""
+				if (response?.error || response?.message) {
+					throw new Error(
+						t("common:errors.geminiOauth.apiError", {
+							message: response.error?.message || response.message || "Unknown error",
+						}),
+					)
+				}
 
-				for (const line of lines) {
-					const trimmed = line.trim()
-					if (!trimmed || trimmed.startsWith(":")) {
-						continue
-					}
-					if (!trimmed.startsWith("data:")) {
-						continue
-					}
-					const payload = trimmed.slice(5).trim()
-					if (!payload || payload === "[DONE]") {
-						continue
-					}
+				const chunk = response
 
-					let parsed: any
-					try {
-						parsed = JSON.parse(payload)
-					} catch {
-						continue
-					}
+				// Track the final structured response (per SDK pattern: candidate.finishReason)
+				if (chunk.candidates && chunk.candidates[0]?.finishReason) {
+					finalResponse = chunk as { responseId?: string }
+					finishReason = chunk.candidates[0].finishReason
+				}
+				// Process candidates and their parts to separate thoughts from content
+				if (chunk.candidates && chunk.candidates.length > 0) {
+					const candidate = chunk.candidates[0]
 
-					const response = parsed?.response ?? parsed
-					if (response?.responseId) {
-						this.lastResponseId = response.responseId
+					if (candidate.groundingMetadata) {
+						pendingGroundingMetadata = candidate.groundingMetadata
 					}
 
-					if (response?.error || response?.message) {
-						throw new Error(
-							t("common:errors.geminiOauth.apiError", {
-								message: response.error?.message || response.message || "Unknown error",
-							}),
-						)
-					}
+					if (candidate.content && candidate.content.parts) {
+						for (const part of candidate.content.parts as Array<{
+							thought?: boolean
+							text?: string
+							thoughtSignature?: string
+							functionCall?: { name: string; args: Record<string, unknown> }
+						}>) {
+							// Capture thought signatures so they can be persisted into API history.
+							const thoughtSignature = part.thoughtSignature
+							// Persist thought signatures so they can be round-tripped in the next step.
+							// Gemini 3 requires this during tool calling; other Gemini thinking models
+							// benefit from it for continuity.
+							if (includeThoughtSignatures && thoughtSignature) {
+								this.lastThoughtSignature = thoughtSignature
+							}
 
-					if (response?.candidates && response.candidates.length > 0) {
-						const candidate = response.candidates[0]
-						if (candidate.groundingMetadata) {
-							pendingGroundingMetadata = candidate.groundingMetadata
-						}
-						if (candidate.content?.parts) {
-							for (const part of candidate.content.parts as Array<{
-								thought?: boolean
-								text?: string
-								thoughtSignature?: string
-								functionCall?: { name: string; args: Record<string, unknown> }
-							}>) {
-								const thoughtSignature = part.thoughtSignature
-								if (includeThoughtSignatures && thoughtSignature) {
-									this.lastThoughtSignature = thoughtSignature
+							if (part.thought) {
+								// This is a thinking/reasoning part
+								if (part.text) {
+									hasReasoning = true
+									yield { type: "reasoning", text: part.text }
 								}
-								if (part.thought) {
-									if (part.text) {
-										hasContent = true
-										yield { type: "reasoning", text: part.text }
-									}
-								} else if (part.functionCall) {
-									const callId = `${part.functionCall.name}-${toolCallCounter}`
-									const args = JSON.stringify(part.functionCall.args)
-									hasContent = true
-								// Tool call identity is emitted via tool_call_partial chunks.
-									yield {
-										type: "tool_call_partial",
-										index: toolCallCounter,
-										id: callId,
-										name: part.functionCall.name,
-										arguments: undefined,
-									}
-									yield {
-										type: "tool_call_partial",
-										index: toolCallCounter,
-										id: callId,
-										name: undefined,
-										arguments: args,
-									}
-									toolCallCounter++
-								} else if (part.text) {
+							} else if (part.functionCall) {
+								hasContent = true
+								// Gemini sends complete function calls in a single chunk
+								// Emit as partial chunks for consistent handling with NativeToolCallParser
+								const callId = `${part.functionCall.name}-${toolCallCounter}`
+								const args = JSON.stringify(part.functionCall.args)
+
+								// Emit name first
+								yield {
+									type: "tool_call_partial",
+									index: toolCallCounter,
+									id: callId,
+									name: part.functionCall.name,
+									arguments: undefined,
+								}
+
+								// Then emit arguments
+								yield {
+									type: "tool_call_partial",
+									index: toolCallCounter,
+									id: callId,
+									name: undefined,
+									arguments: args,
+								}
+
+								toolCallCounter++
+							} else {
+								// This is regular content
+								if (part.text) {
 									hasContent = true
 									yield { type: "text", text: part.text }
 								}
 							}
 						}
 					}
+				}
 
-					if (response?.usageMetadata) {
-						lastUsageMetadata = response.usageMetadata
-					}
+				// Fallback to the original text property if no candidates structure
+				else if (chunk.text) {
+					hasContent = true
+					yield { type: "text", text: chunk.text }
+				}
+
+				if (chunk.usageMetadata) {
+					lastUsageMetadata = chunk.usageMetadata
 				}
 			}
-		} finally {
-			reader.releaseLock()
-		}
 
-		// if (pendingGroundingMetadata) {
-		// 	const sources = this.extractGroundingSources(pendingGroundingMetadata)
-		// 	if (sources.length > 0) {
-		// 		yield { type: "grounding", sources }
-		// 	}
-		// }
-
-		if (lastUsageMetadata) {
-			const usageData = this.normalizeUsage(lastUsageMetadata)
-			if (usageData) {
-				yield usageData
+			if (finalResponse?.responseId) {
+				// Capture responseId so Task.addToApiConversationHistory can store it
+				// alongside the assistant message in api_history.json.
+				this.lastResponseId = finalResponse.responseId
 			}
+
+			// Surface non-STOP finish reasons when the model produced no actionable content.
+			// This covers cases like SAFETY, RECITATION, MAX_TOKENS where the API
+			// silently returns nothing. Throwing here gives Task.ts retry logic a
+			// meaningful error message instead of the generic "no assistant messages".
+			if (!hasContent && finishReason && finishReason !== "STOP") {
+				throw new Error(
+					`Gemini response blocked or incomplete (finishReason: ${finishReason}). No content was returned.`,
+				)
+			}
+
+			if (pendingGroundingMetadata) {
+				const sources = this.extractGroundingSources(pendingGroundingMetadata)
+				if (sources.length > 0) {
+					yield { type: "grounding", sources }
+				}
+			}
+
+			if (lastUsageMetadata) {
+				const inputTokens = lastUsageMetadata.promptTokenCount ?? 0
+				const outputTokens = lastUsageMetadata.candidatesTokenCount ?? 0
+				const cacheReadTokens = lastUsageMetadata.cachedContentTokenCount
+				const reasoningTokens = lastUsageMetadata.thoughtsTokenCount
+
+				yield {
+					type: "usage",
+					inputTokens,
+					outputTokens,
+					cacheReadTokens,
+					reasoningTokens,
+					totalCost: 0,
+				}
+			}
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error)
+			const apiError = new ApiProviderError(errorMessage, this.providerName, model.id, "createMessage")
+			TelemetryService.instance.captureException(apiError)
+
+			if (error instanceof Error) {
+				throw new Error(t("common:errors.gemini.generate_stream", { error: error.message }))
+			}
+
+			throw error
 		}
 
 		if (!hasContent) {
@@ -481,309 +450,119 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		messages: Anthropic.Messages.MessageParam[],
 		metadata?: ApiHandlerCreateMessageMetadata,
 	): ApiStream {
-		await this.ensureAuthenticated()
-		const projectId = await this.getProjectId()
-		const accessToken = await geminiOAuthManager.getAccessToken({ path: this.options.geminiOauthPath })
-		if (!accessToken) {
-			throw new Error(
-				t("common:errors.geminiOauth.notAuthenticated", {
-					defaultValue:
-						"Not authenticated with Gemini OAuth. Please sign in using the Gemini OAuth flow.",
-				}),
-			)
-		}
+		await geminiOAuthManager.ensureAuthenticated({ path: this.options.geminiOauthPath })
+		const projectId = this.getProjectId()
+		const authClient = geminiOAuthManager.getAuthClient()
 
-		const { modelId, request } = this.buildRequestPayload(systemInstruction, messages, metadata)
-		const includeThoughtSignatures = Boolean((request as any)?.generationConfig?.thinkingConfig)
-		const envelope = {
+		const { model, config, request } = this.buildRequestPayload(systemInstruction, messages, metadata)
+		const includeThoughtSignatures = Boolean(config?.thinkingConfig)
+		const requestBody = {
 			project: projectId,
-			model: modelId,
+			model: model,
 			request,
 		}
 
-		const url = `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:streamGenerateContent?alt=sse`
 		try {
-			const response = await this.fetchWithRetry(
-				url,
-				{
-					method: "POST",
-					headers: this.getAuthHeaders(true, accessToken, metadata?.taskId),
-					body: JSON.stringify(envelope),
-				},
-				true,
-				metadata?.taskId,
+			const response = await authClient.request({
+				url: `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:streamGenerateContent`,
+				method: "POST",
+				params: { alt: "sse" },
+				headers: this.getAuthHeaders(true, metadata?.taskId),
+				responseType: "stream",
+				data: JSON.stringify(requestBody),
+			})
+
+			yield* this.handleStreamResponse(
+				response.data as NodeJS.ReadableStream,
+				this.getModel(),
+				includeThoughtSignatures,
 			)
-
-			if (!response.ok || !response.body) {
-				const errorText = await response.text()
-				throw new Error(this.formatHttpError(response.status, response.statusText, errorText))
-			}
-
-			yield* this.handleStreamResponse(response.body, this.getModel(), includeThoughtSignatures)
 		} catch (error) {
-			// Fallback to non-streaming request if streaming fails.
-			try {
-				const fallbackUrl = `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:generateContent`
-				const fallbackResponse = await this.fetchWithRetry(
-					fallbackUrl,
-					{
-						method: "POST",
-						headers: this.getAuthHeaders(false, accessToken, metadata?.taskId),
-						body: JSON.stringify(envelope),
-					},
-					false,
-					metadata?.taskId,
-				)
-				if (fallbackResponse.ok) {
-					const data = await fallbackResponse.json()
-					const responseBody = data?.response ?? data
-					let text = responseBody?.text ?? ""
-					const candidate = responseBody?.candidates?.[0]
-					if (!text && candidate?.content?.parts) {
-						text = candidate.content.parts
-							.map((part: { text?: string; thought?: boolean }) => (part.thought ? "" : (part.text ?? "")))
-							.join("")
-					}
-					if (text) {
-						yield { type: "text", text }
-					}
-					// if (candidate?.groundingMetadata) {
-					// 	const sources = this.extractGroundingSources(candidate.groundingMetadata)
-					// 	if (sources.length > 0) {
-					// 		yield { type: "grounding", sources }
-					// 	}
-					// }
-					if (responseBody?.usageMetadata) {
-						const usageData = this.normalizeUsage(responseBody.usageMetadata)
-						if (usageData) {
-							yield usageData
-						}
-					}
-					return
-				}
-			} catch {
-				// Fall through to error handling below.
-			}
-
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const apiError = new ApiProviderError(errorMessage, this.providerName, modelId, "createMessage")
+			const apiError = new ApiProviderError(errorMessage, this.providerName, model, "createMessage")
 			TelemetryService.instance.captureException(apiError)
 
 			if (error instanceof Error) {
-				throw new Error(t("common:errors.geminiOauth.generate_stream", { error: error.message }))
+				throw new Error(t("common:errors.gemini.generate_stream", { error: error.message }))
 			}
+
 			throw error
 		}
 	}
 
 	async completePrompt(prompt: string): Promise<string> {
-		await this.ensureAuthenticated()
-		const projectId = await this.getProjectId()
-		const accessToken = await geminiOAuthManager.getAccessToken({ path: this.options.geminiOauthPath })
-		if (!accessToken) {
-			throw new Error(
-				t("common:errors.geminiOauth.notAuthenticated", {
-					defaultValue:
-						"Not authenticated with Gemini OAuth. Please sign in using the Gemini OAuth flow.",
-				}),
-			)
-		}
+		await geminiOAuthManager.ensureAuthenticated({ path: this.options.geminiOauthPath })
+		const projectId = this.getProjectId()
+		const authClient = geminiOAuthManager.getAuthClient()
 
-		const model = this.getModel()
-		const request: Record<string, unknown> = {
-			contents: [{ role: "user", parts: [{ text: prompt }] }],
-		}
-
-		const supportsTemperature = model.info.supportsTemperature !== false
+		const { id: model, info } = this.getModel()
+		const supportsTemperature = info.supportsTemperature !== false
 		const temperatureConfig: number | undefined = supportsTemperature
-			? (this.options.modelTemperature ?? model.info.defaultTemperature ?? 1)
-			: model.info.defaultTemperature
-		if (typeof temperatureConfig === "number") {
-			request.generationConfig = { temperature: temperatureConfig }
+			? (this.options.modelTemperature ?? info.defaultTemperature ?? 1)
+			: info.defaultTemperature
+
+		const promptConfig: GenerateContentConfig = {
+			httpOptions: this.options.googleGeminiBaseUrl ? { baseUrl: this.options.googleGeminiBaseUrl } : undefined,
+			temperature: temperatureConfig,
 		}
 
-		const envelope = {
+		const request = {
+			model,
+			contents: [{ role: "user", parts: [{ text: prompt }] }],
+			config: promptConfig,
+		}
+
+		const requestBody = {
 			project: projectId,
-			model: model.id,
+			model: model,
 			request,
 		}
 
-		const url = `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:generateContent`
 		try {
-			const response = await this.fetchWithRetry(
-				url,
-				{
-					method: "POST",
-					headers: this.getAuthHeaders(false, accessToken),
-					body: JSON.stringify(envelope),
-				},
-				false,
-			)
+			const response = await authClient.request({
+				url: `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:generateContent`,
+				method: "POST",
+				headers: this.getAuthHeaders(false),
+				data: JSON.stringify(requestBody),
+			})
 
-			if (!response.ok) {
-				const errorText = await response.text()
-				throw new Error(this.formatHttpError(response.status, response.statusText, errorText))
-			}
-
-			const data = await response.json()
-			const responseBody = data?.response ?? data
+			// Extract text from response
+			const responseBody = response.data as any
 			let text = responseBody?.text ?? ""
-			const candidate = responseBody?.candidates?.[0]
-			if (!text && candidate?.content?.parts) {
-				text = candidate.content.parts
-					.map((part: { text?: string; thought?: boolean }) => (part.thought ? "" : (part.text ?? "")))
-					.join("")
-			}
 
-			// if (candidate?.groundingMetadata) {
-			// 	const citations = this.extractCitationsOnly(candidate.groundingMetadata)
-			// 	if (citations) {
-			// 		text += `${t("common:errors.gemini.sources")} ${citations}`
-			// 	}
-			// }
+			// Extract text from response
+			if (responseBody.candidates && responseBody.candidates.length > 0) {
+				const candidate = responseBody.candidates[0]
+				if (candidate.content && candidate.content.parts) {
+					const textParts = candidate.content.parts
+						.filter((part: any) => part.text && !part.thought)
+						.map((part: any) => part.text)
+						.join("")
+					return textParts
+				}
+			}
 
 			return text
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
-			const apiError = new ApiProviderError(errorMessage, this.providerName, model.id, "completePrompt")
+			const apiError = new ApiProviderError(errorMessage, this.providerName, model, "completePrompt")
 			TelemetryService.instance.captureException(apiError)
 
 			if (error instanceof Error) {
-				throw new Error(t("common:errors.geminiOauth.generate_complete_prompt", { error: error.message }))
+				throw new Error(t("common:errors.gemini.generate_complete_prompt", { error: error.message }))
 			}
+
 			throw error
 		}
 	}
-	override async countTokens(content: Anthropic.Messages.ContentBlockParam[]): Promise<number> {
-		await this.ensureAuthenticated()
-		const accessToken = await geminiOAuthManager.getAccessToken({ path: this.options.geminiOauthPath })
-		if (!accessToken) {
-			throw new Error(
-				t("common:errors.geminiOauth.notAuthenticated", {
-					defaultValue:
-						"Not authenticated with Gemini OAuth. Please sign in using the Gemini OAuth flow.",
-				}),
-			)
-		}
 
-		const contents = convertAnthropicMessageToGemini({ role: "user", content })
-		const request: Record<string, unknown> = { contents }
-		const envelope = { request }
-		const url = `${CODE_ASSIST_BASE_URL}/${CODE_ASSIST_VERSION}:countTokens`
-
-		const response = await this.fetchWithRetry(
-			url,
-			{
-				method: "POST",
-				headers: this.getAuthHeaders(false, accessToken),
-				body: JSON.stringify(envelope),
-			},
-			false,
-		)
-
-		if (!response.ok) {
-			const errorText = await response.text()
-			throw new Error(this.formatHttpError(response.status, response.statusText, errorText))
-		}
-
-		const data = await response.json()
-		const responseBody = data?.response ?? data
-		const totalTokens = responseBody?.totalTokens ?? responseBody?.total_tokens
-		return typeof totalTokens === "number" ? totalTokens : 0
+	override async countTokens(content: Array<Anthropic.Messages.ContentBlockParam>): Promise<number> {
+		// For OAuth/free tier, we can't use the token counting API
+		// Fall back to the base provider's tiktoken implementation
+		return super.countTokens(content)
 	}
 
-	private async fetchWithRetry(
-		url: string,
-		init: RequestInit,
-		streaming: boolean,
-		taskId?: string,
-	): Promise<Response> {
-		for (let attempt = 0; attempt < 2; attempt++) {
-			try {
-				this.abortController = new AbortController()
-				const response = await fetch(url, { ...init, signal: this.abortController.signal })
-				if (response.status !== 401 || attempt > 0) {
-					return response
-				}
-			} catch (error) {
-				if (attempt > 0) {
-					throw error
-				}
-			}
-
-			const refreshed = await geminiOAuthManager.forceRefreshAccessToken({ path: this.options.geminiOauthPath })
-			if (!refreshed) {
-				throw new Error(
-					t("common:errors.geminiOauth.notAuthenticated", {
-						defaultValue:
-							"Not authenticated with Gemini OAuth. Please sign in using the Gemini OAuth flow.",
-					}),
-				)
-			}
-
-			const headers = this.getAuthHeaders(streaming, refreshed, taskId)
-			return await fetch(url, { ...init, headers, signal: this.abortController?.signal })
-		}
-
-		throw new Error(
-			t("common:errors.geminiOauth.notAuthenticated", {
-				defaultValue: "Not authenticated with Gemini OAuth. Please sign in using the Gemini OAuth flow.",
-			}),
-		)
-	}
-
-	private formatHttpError(status: number, statusText: string, errorText: string): string {
-		let errorMessage = t("common:errors.geminiOauth.genericError", { status })
-		let errorDetails = ""
-
-		try {
-			const errorJson = JSON.parse(errorText)
-			if (errorJson.error?.message) {
-				errorDetails = errorJson.error.message
-			} else if (errorJson.message) {
-				errorDetails = errorJson.message
-			} else if (errorJson.detail) {
-				errorDetails = errorJson.detail
-			} else {
-				errorDetails = errorText
-			}
-		} catch {
-			errorDetails = errorText
-		}
-
-		switch (status) {
-			case 400:
-				errorMessage = t("common:errors.geminiOauth.invalidRequest")
-				break
-			case 401:
-				errorMessage = t("common:errors.geminiOauth.authenticationFailed")
-				break
-			case 403:
-				errorMessage = t("common:errors.geminiOauth.accessDenied")
-				break
-			case 404:
-				errorMessage = t("common:errors.geminiOauth.endpointNotFound")
-				break
-			case 429:
-				errorMessage = t("common:errors.geminiOauth.rateLimitExceeded")
-				break
-			case 500:
-			case 502:
-			case 503:
-				errorMessage = t("common:errors.geminiOauth.serviceError")
-				break
-			default:
-				errorMessage = t("common:errors.geminiOauth.genericError", { status })
-		}
-
-		if (errorDetails) {
-			errorMessage += ` - ${errorDetails}`
-		}
-
-		return errorMessage || `Gemini OAuth error: ${status} ${statusText}`
-	}
-
-	getModel() {
+	override getModel() {
 		const modelId = this.options.apiModelId
 		let id = modelId && modelId in geminiOauthModels ? (modelId as GeminiOAuthModelId) : geminiOauthDefaultModelId
 		const info: ModelInfo = geminiOauthModels[id]
@@ -802,6 +581,29 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		return { id, info, ...params }
 	}
 
+	private extractGroundingSources(groundingMetadata?: GroundingMetadata): GroundingSource[] {
+		const chunks = groundingMetadata?.groundingChunks
+
+		if (!chunks) {
+			return []
+		}
+
+		return chunks
+			.map((chunk): GroundingSource | null => {
+				const uri = chunk.web?.uri
+				const title = chunk.web?.title || uri || "Unknown Source"
+
+				if (uri) {
+					return {
+						title,
+						url: uri,
+					}
+				}
+				return null
+			})
+			.filter((source): source is GroundingSource => source !== null)
+	}
+
 	public getThoughtSignature(): string | undefined {
 		return this.lastThoughtSignature
 	}
@@ -809,33 +611,4 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 	public getResponseId(): string | undefined {
 		return this.lastResponseId
 	}
-
-	// private extractGroundingSources(groundingMetadata?: GroundingMetadata): GroundingSource[] {
-	// 	const chunks = groundingMetadata?.groundingChunks
-	// 	if (!chunks) {
-	// 		return []
-	// 	}
-
-	// 	return chunks
-	// 		.map((chunk): GroundingSource | null => {
-	// 			const uri = chunk.web?.uri
-	// 			const title = chunk.web?.title || uri || "Unknown Source"
-
-	// 			if (uri) {
-	// 				return { title, url: uri }
-	// 			}
-	// 			return null
-	// 		})
-	// 		.filter((source): source is GroundingSource => source !== null)
-	// }
-
-	// private extractCitationsOnly(groundingMetadata?: GroundingMetadata): string | null {
-	// 	const sources = this.extractGroundingSources(groundingMetadata)
-	// 	if (sources.length === 0) {
-	// 		return null
-	// 	}
-
-	// 	const citationLinks = sources.map((source, i) => `[${i + 1}](${source.url})`)
-	// 	return citationLinks.join(", ")
-	// }
 }

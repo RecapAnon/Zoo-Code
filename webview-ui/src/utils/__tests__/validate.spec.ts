@@ -184,7 +184,7 @@ describe("Model Validation Functions", () => {
 		it("accepts gemini oauth config when path is provided", () => {
 			const config: ProviderSettings = {
 				apiProvider: "gemini-oauth",
-				geminiOauthPath: "~/.roo/gemini-oauth.json",
+				geminiOauthPath: "~/.gemini/oauth_creds.json",
 			}
 
 			const result = validateApiConfigurationExcludingModelErrors(config, mockRouterModels, allowAllOrganization)

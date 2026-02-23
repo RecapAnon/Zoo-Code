@@ -9,7 +9,7 @@ interface GeminiOAuthProps {
 }
 
 export const GeminiOAuth: React.FC<GeminiOAuthProps> = ({ apiConfiguration, setApiConfigurationField }) => {
-	const defaultPath = "~/.roo/gemini-oauth.json"
+	const defaultPath = "~/.gemini/oauth_creds.json"
 
 	const handlePathChange = (e: Event | React.FormEvent<HTMLElement>) => {
 		const element = e.target as HTMLInputElement
@@ -42,7 +42,7 @@ export const GeminiOAuth: React.FC<GeminiOAuthProps> = ({ apiConfiguration, setA
 				</VSCodeTextField>
 
 				<p className="text-xs mt-1 text-vscode-descriptionForeground">
-					Path to your Gemini OAuth credentials file. Defaults to ~/.roo/gemini-oauth.json if left empty.
+					Path to your Gemini OAuth credentials file. Defaults to ~/.gemini/oauth_creds.json if left empty.
 				</p>
 			</div>
 
