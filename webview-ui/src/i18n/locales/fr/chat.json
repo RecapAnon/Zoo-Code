@@ -25,14 +25,15 @@
 		"sharingDisabledByOrganization": "Partage désactivé par l'organisation",
 		"shareSuccessOrganization": "Lien d'organisation copié dans le presse-papiers",
 		"shareSuccessPublic": "Lien public copié dans le presse-papiers",
-		"openInCloud": "Ouvrir la tâche dans Roo Code Cloud",
-		"openInCloudIntro": "Continue à surveiller ou interagir avec Roo depuis n'importe où. Scanne, clique ou copie pour ouvrir.",
 		"openApiHistory": "Ouvrir l'historique de l'API",
 		"openUiHistory": "Ouvrir l'historique de l'UI",
 		"backToParentTask": "Tâche parente"
 	},
 	"unpin": "Désépingler",
 	"pin": "Épingler",
+	"fileChangesInConversation": {
+		"header": "{{count}} fichier(s) modifié(s) dans cette conversation"
+	},
 	"tokenProgress": {
 		"availableSpace": "Espace disponible : {{amount}} tokens",
 		"tokensUsed": "Tokens utilisés : {{used}} sur {{total}}",
@@ -347,9 +348,9 @@
 		},
 		"release": {
 			"heading": "Quoi de neuf :",
-			"sonnet46": "Claude Sonnet 4.6 : Prise en charge complète du dernier modèle Claude Sonnet 4.6 d'Anthropic sur tous les fournisseurs — Anthropic, Bedrock, Vertex, OpenRouter et Vercel AI Gateway.",
-			"stabilityFixes": "Améliorations de stabilité : Cycle de vie de délégation renforcé contre les conditions de course, correction de la préservation de l'historique de chat lors de la navigation et de la reprise de tâches, et résolution des problèmes d'ancrage du défilement pour une expérience plus fluide.",
-			"lockedApiConfig": "Configuration API verrouillée : Un nouveau bouton de verrouillage te permet de fixer ta configuration API sur tous les modes d'un espace de travail, pour que changer de mode ne réinitialise plus tes paramètres de fournisseur."
+			"geminiPro": "Support de Gemini 3.1 Pro : Le modèle Gemini 3.1 Pro a été ajouté et défini comme modèle Gemini par défaut pour de meilleures performances.",
+			"cliNdjson": "Protocole NDJSON du CLI : Nouveau protocole NDJSON via stdin, sous-commandes de liste et commande d'exécution modularisée pour des workflows CLI plus flexibles.",
+			"cliRelease": "CLI v0.1.0 : Le CLI de Roo Code atteint sa première version officielle avec une interface de commandes stable."
 		},
 		"cloudAgents": {
 			"heading": "Nouveautés dans le Cloud :",
@@ -426,7 +427,8 @@
 		"indexing": "Indexation {{percentage}}%",
 		"indexed": "Indexé",
 		"error": "Erreur d'index",
-		"status": "Statut de l'index"
+		"status": "Statut de l'index",
+		"stopping": "Arrêt de l'indexation..."
 	},
 	"versionIndicator": {
 		"ariaLabel": "Version {{version}} - Cliquez pour voir les notes de version"

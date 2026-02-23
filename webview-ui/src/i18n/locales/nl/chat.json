@@ -25,14 +25,15 @@
 		"sharingDisabledByOrganization": "Delen uitgeschakeld door organisatie",
 		"shareSuccessOrganization": "Organisatielink gekopieerd naar klembord",
 		"shareSuccessPublic": "Openbare link gekopieerd naar klembord",
-		"openInCloud": "Taak openen in Roo Code Cloud",
-		"openInCloudIntro": "Blijf Roo vanaf elke locatie monitoren of ermee interacteren. Scan, klik of kopieer om te openen.",
 		"openApiHistory": "API-geschiedenis openen",
 		"openUiHistory": "UI-geschiedenis openen",
 		"backToParentTask": "Bovenliggende taak"
 	},
 	"unpin": "Losmaken",
 	"pin": "Vastmaken",
+	"fileChangesInConversation": {
+		"header": "{{count}} bestand(en) gewijzigd in dit gesprek"
+	},
 	"retry": {
 		"title": "Opnieuw proberen",
 		"tooltip": "Probeer de bewerking opnieuw"
@@ -320,9 +321,9 @@
 		},
 		"release": {
 			"heading": "Wat is er nieuw:",
-			"sonnet46": "Claude Sonnet 4.6: Volledige ondersteuning voor Anthropics nieuwste Claude Sonnet 4.6 model bij alle providers — Anthropic, Bedrock, Vertex, OpenRouter en Vercel AI Gateway.",
-			"stabilityFixes": "Stabiliteitsverbeteringen: Delegatie-levenscyclus versterkt tegen race conditions, behoud van chatgeschiedenis tijdens navigatie en taakhervatting hersteld, en scroll-verankeringsproblemen opgelost voor een soepelere ervaring.",
-			"lockedApiConfig": "Vergrendelde API-configuratie: Een nieuwe vergrendelingsknop laat je je API-configuratie vastzetten in alle modi van een workspace, zodat het wisselen van modus je providerinstellingen niet meer reset."
+			"geminiPro": "Gemini 3.1 Pro ondersteuning: Ondersteuning voor het Gemini 3.1 Pro model is toegevoegd en ingesteld als standaard Gemini-model voor betere prestaties.",
+			"cliNdjson": "CLI NDJSON-protocol: Nieuw NDJSON stdin-protocol, list-subopdrachten en gemodulariseerd run-commando voor flexibelere CLI-workflows.",
+			"cliRelease": "CLI v0.1.0: De Roo Code CLI bereikt zijn eerste officiële release met een stabiele opdrachtinterface."
 		},
 		"cloudAgents": {
 			"heading": "Nieuw in de Cloud:",
@@ -426,7 +427,8 @@
 		"indexing": "Indexeren {{percentage}}%",
 		"indexed": "Geïndexeerd",
 		"error": "Index fout",
-		"status": "Index status"
+		"status": "Index status",
+		"stopping": "Indexering wordt gestopt..."
 	},
 	"versionIndicator": {
 		"ariaLabel": "Versie {{version}} - Klik om release notes te bekijken"

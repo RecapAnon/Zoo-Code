@@ -25,14 +25,15 @@
 		"sharingDisabledByOrganization": "組織已停用分享功能",
 		"shareSuccessOrganization": "組織連結已複製到剪貼簿",
 		"shareSuccessPublic": "公開連結已複製到剪貼簿",
-		"openInCloud": "在 Roo Code Cloud 中開啟工作",
-		"openInCloudIntro": "從任何地方繼續監控或與 Roo 互動。掃描、點選或複製即可開啟。",
 		"openApiHistory": "開啟 API 歷史紀錄",
 		"openUiHistory": "開啟 UI 歷史紀錄",
 		"backToParentTask": "上層工作"
 	},
 	"unpin": "取消釘選",
 	"pin": "釘選",
+	"fileChangesInConversation": {
+		"header": "此對話中已變更 {{count}} 個檔案"
+	},
 	"retry": {
 		"title": "重試",
 		"tooltip": "再次嘗試操作"
@@ -369,9 +370,9 @@
 		},
 		"release": {
 			"heading": "新增功能：",
-			"sonnet46": "Claude Sonnet 4.6：全面支援 Anthropic 最新的 Claude Sonnet 4.6 模型，涵蓋所有提供者 — Anthropic、Bedrock、Vertex、OpenRouter 和 Vercel AI Gateway。",
-			"stabilityFixes": "穩定性改善：強化委派生命週期以防止競態條件，修復導航和工作恢復時的聊天紀錄保留問題，並解決捲動錨定問題以獲得更流暢的體驗。",
-			"lockedApiConfig": "鎖定 API 設定：新的鎖定開關讓你可以在工作區的所有模式中固定 API 設定，這樣切換模式不再重設你的提供者設定。"
+			"geminiPro": "Gemini 3.1 Pro 支援：新增 Gemini 3.1 Pro 模型支援，並設為預設 Gemini 模型以提升效能。",
+			"cliNdjson": "CLI NDJSON 協定：新增 NDJSON stdin 協定、list 子指令，以及模組化的 run 指令，提供更彈性的 CLI 工作流程。",
+			"cliRelease": "CLI v0.1.0：Roo Code CLI 以穩定的指令介面達成首個正式版本。"
 		},
 		"cloudAgents": {
 			"heading": "雲端的新功能：",
@@ -425,7 +426,8 @@
 		"indexing": "索引中 {{percentage}}%",
 		"indexed": "已索引",
 		"error": "索引錯誤",
-		"status": "索引狀態"
+		"status": "索引狀態",
+		"stopping": "正在停止索引..."
 	},
 	"versionIndicator": {
 		"ariaLabel": "版本 {{version}} - 點選查看發布說明"

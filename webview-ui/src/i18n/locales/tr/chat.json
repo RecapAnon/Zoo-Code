@@ -25,14 +25,15 @@
 		"sharingDisabledByOrganization": "Paylaşım kuruluş tarafından devre dışı bırakıldı",
 		"shareSuccessOrganization": "Organizasyon bağlantısı panoya kopyalandı",
 		"shareSuccessPublic": "Genel bağlantı panoya kopyalandı",
-		"openInCloud": "Görevi Roo Code Cloud'da aç",
-		"openInCloudIntro": "Roo'yu her yerden izlemeye veya etkileşime devam et. Açmak için tara, tıkla veya kopyala.",
 		"openApiHistory": "API Geçmişini Aç",
 		"openUiHistory": "UI Geçmişini Aç",
 		"backToParentTask": "Üst görev"
 	},
 	"unpin": "Sabitlemeyi iptal et",
 	"pin": "Sabitle",
+	"fileChangesInConversation": {
+		"header": "Bu sohbette {{count}} dosya değiştirildi"
+	},
 	"tokenProgress": {
 		"availableSpace": "Kullanılabilir alan: {{amount}} token",
 		"tokensUsed": "Kullanılan tokenlar: {{used}} / {{total}}",
@@ -348,9 +349,9 @@
 		},
 		"release": {
 			"heading": "Yenilikler:",
-			"sonnet46": "Claude Sonnet 4.6: Anthropic'in en yeni Claude Sonnet 4.6 modeli için tüm sağlayıcılarda tam destek — Anthropic, Bedrock, Vertex, OpenRouter ve Vercel AI Gateway.",
-			"stabilityFixes": "Kararlılık İyileştirmeleri: Yarış koşullarına karşı delegasyon yaşam döngüsü güçlendirildi, gezinme ve görev devam ettirme sırasında sohbet geçmişi koruması düzeltildi ve daha akıcı bir deneyim için kaydırma sabitleme sorunları çözüldü.",
-			"lockedApiConfig": "Kilitli API Yapılandırması: Yeni kilit düğmesi, API yapılandırmanı bir çalışma alanındaki tüm modlarda sabitlemenizi sağlar, böylece mod değiştirmek artık sağlayıcı ayarlarını sıfırlamaz."
+			"geminiPro": "Gemini 3.1 Pro Desteği: Gemini 3.1 Pro model desteği eklendi ve daha iyi performans için varsayılan Gemini modeli olarak ayarlandı.",
+			"cliNdjson": "CLI NDJSON Protokolü: Yeni NDJSON stdin protokolü, list alt komutları ve daha esnek CLI iş akışları için modüler run komutu.",
+			"cliRelease": "CLI v0.1.0: Roo Code CLI, kararlı bir komut arayüzüyle ilk resmi sürümüne ulaştı."
 		},
 		"cloudAgents": {
 			"heading": "Cloud'daki yenilikler:",
@@ -427,7 +428,8 @@
 		"indexing": "İndeksleniyor {{percentage}}%",
 		"indexed": "İndekslendi",
 		"error": "İndeks hatası",
-		"status": "İndeks durumu"
+		"status": "İndeks durumu",
+		"stopping": "İndeksleme durduruluyor..."
 	},
 	"versionIndicator": {
 		"ariaLabel": "Sürüm {{version}} - Sürüm notlarını görüntülemek için tıklayın"

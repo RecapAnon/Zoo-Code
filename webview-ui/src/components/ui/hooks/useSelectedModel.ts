@@ -160,6 +160,11 @@ function getSelectedModel({
 			const routerInfo = routerModels.requesty?.[id]
 			return { id, info: routerInfo }
 		}
+		case "unbound": {
+			const id = getValidatedModelId(apiConfiguration.unboundModelId, routerModels.unbound, defaultModelId)
+			const routerInfo = routerModels.unbound?.[id]
+			return { id, info: routerInfo }
+		}
 		case "litellm": {
 			const id = getValidatedModelId(apiConfiguration.litellmModelId, routerModels.litellm, defaultModelId)
 			const routerInfo = routerModels.litellm?.[id]
@@ -183,7 +188,7 @@ function getSelectedModel({
 			if (id === "custom-arn") {
 				return {
 					id,
-					info: { maxTokens: 5000, contextWindow: 128_000, supportsPromptCache: false, supportsImages: true },
+					info: { maxTokens: 5000, contextWindow: 128_000, supportsPromptCache: true, supportsImages: true },
 				}
 			}
 

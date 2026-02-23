@@ -25,14 +25,15 @@
 		"sharingDisabledByOrganization": "Sharing disabled by organization",
 		"shareSuccessOrganization": "Organization link copied to clipboard",
 		"shareSuccessPublic": "Public link copied to clipboard",
-		"openInCloud": "Open task in Roo Code Cloud",
-		"openInCloudIntro": "Keep monitoring or interacting with Roo from anywhere. Scan, click or copy to open.",
 		"openApiHistory": "Open API History",
 		"openUiHistory": "Open UI History",
 		"backToParentTask": "Parent task"
 	},
 	"unpin": "Unpin",
 	"pin": "Pin",
+	"fileChangesInConversation": {
+		"header": "{{count}} file(s) changed in this conversation"
+	},
 	"retry": {
 		"title": "Retry",
 		"tooltip": "Try the operation again"
@@ -366,9 +367,9 @@
 		},
 		"release": {
 			"heading": "What's New:",
-			"sonnet46": "Claude Sonnet 4.6: Full support for Anthropic's latest Claude Sonnet 4.6 model across all providers — Anthropic, Bedrock, Vertex, OpenRouter, and Vercel AI Gateway.",
-			"stabilityFixes": "Stability Improvements: Hardened delegation lifecycle against race conditions, fixed chat history preservation during navigation and task resume, and resolved scroll anchoring issues for a smoother experience.",
-			"lockedApiConfig": "Locked API Config: New lock toggle lets you pin your API configuration across all modes in a workspace, so switching modes no longer resets your provider settings."
+			"geminiPro": "Gemini 3.1 Pro Support: Added Gemini 3.1 Pro model support and set it as the default Gemini model for improved performance.",
+			"cliNdjson": "CLI NDJSON Protocol: New NDJSON stdin protocol, list subcommands, and modularized run command for more flexible CLI workflows.",
+			"cliRelease": "CLI v0.1.0: The Roo Code CLI reaches its first official release with a stable command interface."
 		},
 		"cloudAgents": {
 			"heading": "New in the Cloud:",
@@ -422,7 +423,8 @@
 		"indexing": "Indexing {{percentage}}%",
 		"indexed": "Indexed",
 		"error": "Index error",
-		"status": "Index status"
+		"status": "Index status",
+		"stopping": "Stopping indexing..."
 	},
 	"versionIndicator": {
 		"ariaLabel": "Version {{version}} - Click to view release notes"

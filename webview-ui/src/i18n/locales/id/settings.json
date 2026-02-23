@@ -211,7 +211,12 @@
 		"searchMinScoreResetTooltip": "Reset ke nilai default (0.4)",
 		"searchMaxResultsLabel": "Hasil Pencarian Maksimum",
 		"searchMaxResultsDescription": "Jumlah maksimum hasil pencarian yang dikembalikan saat melakukan query indeks basis kode. Nilai yang lebih tinggi memberikan lebih banyak konteks tetapi mungkin menyertakan hasil yang kurang relevan.",
-		"resetToDefault": "Reset ke default"
+		"resetToDefault": "Reset ke default",
+		"stopIndexingButton": "Hentikan pengindeksan",
+		"stoppingButton": "Menghentikan...",
+		"workspaceToggleLabel": "Aktifkan pengindeksan untuk ruang kerja ini",
+		"workspaceDisabledMessage": "Pengindeksan dikonfigurasi tetapi tidak diaktifkan untuk ruang kerja ini.",
+		"autoEnableDefaultLabel": "Aktifkan pengindeksan secara otomatis untuk ruang kerja baru"
 	},
 	"autoApprove": {
 		"toggleShortcut": "Anda dapat mengonfigurasi pintasan global untuk pengaturan ini <SettingsLink>di preferensi IDE Anda</SettingsLink>.",
@@ -351,6 +356,8 @@
 		"headerName": "Nama header",
 		"headerValue": "Nilai header",
 		"noCustomHeaders": "Tidak ada header kustom yang didefinisikan. Klik tombol + untuk menambahkan satu.",
+		"unboundApiKey": "Unbound API Key",
+		"getUnboundApiKey": "Dapatkan Unbound API Key",
 		"requestyApiKey": "Requesty API Key",
 		"refreshModels": {
 			"label": "Refresh Model",

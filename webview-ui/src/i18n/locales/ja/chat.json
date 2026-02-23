@@ -25,14 +25,15 @@
 		"sharingDisabledByOrganization": "組織により共有が無効化されています",
 		"shareSuccessOrganization": "組織リンクをクリップボードにコピーしました",
 		"shareSuccessPublic": "公開リンクをクリップボードにコピーしました",
-		"openInCloud": "Roo Code Cloudでタスクを開く",
-		"openInCloudIntro": "どこからでもRooの監視や操作を続けられます。スキャン、クリック、またはコピーして開いてください。",
 		"openApiHistory": "API履歴を開く",
 		"openUiHistory": "UI履歴を開く",
 		"backToParentTask": "親タスク"
 	},
 	"unpin": "ピン留めを解除",
 	"pin": "ピン留め",
+	"fileChangesInConversation": {
+		"header": "この会話で {{count}} 個のファイルが変更されました"
+	},
 	"tokenProgress": {
 		"availableSpace": "利用可能な空き容量: {{amount}} トークン",
 		"tokensUsed": "使用トークン: {{used}} / {{total}}",
@@ -347,9 +348,9 @@
 		},
 		"release": {
 			"heading": "新機能:",
-			"sonnet46": "Claude Sonnet 4.6: Anthropicの最新モデルClaude Sonnet 4.6をすべてのプロバイダーで完全サポート — Anthropic、Bedrock、Vertex、OpenRouter、Vercel AI Gateway。",
-			"stabilityFixes": "安定性の改善: レースコンディションに対するデリゲーションライフサイクルの強化、ナビゲーションおよびタスク再開時のチャット履歴保持の修正、よりスムーズな体験のためのスクロールアンカリング問題の解決。",
-			"lockedApiConfig": "ロックされたAPI設定: 新しいロックトグルにより、ワークスペース内のすべてのモードでAPI設定を固定でき、モードを切り替えてもプロバイダー設定がリセットされなくなりました。"
+			"geminiPro": "Gemini 3.1 Pro サポート: Gemini 3.1 Pro モデルのサポートを追加し、パフォーマンス向上のためデフォルトの Gemini モデルに設定しました。",
+			"cliNdjson": "CLI NDJSON プロトコル: 新しい NDJSON stdin プロトコル、list サブコマンド、より柔軟な CLI ワークフローのためのモジュール化された run コマンド。",
+			"cliRelease": "CLI v0.1.0: Roo Code CLI が安定したコマンドインターフェースで初の正式リリースに到達しました。"
 		},
 		"cloudAgents": {
 			"heading": "クラウドの新機能:",
@@ -426,7 +427,8 @@
 		"indexing": "インデックス作成中 {{percentage}}%",
 		"indexed": "インデックス作成済み",
 		"error": "インデックスエラー",
-		"status": "インデックス状態"
+		"status": "インデックス状態",
+		"stopping": "インデックス作成を停止中..."
 	},
 	"versionIndicator": {
 		"ariaLabel": "バージョン {{version}} - クリックしてリリースノートを表示"

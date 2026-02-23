@@ -25,14 +25,15 @@
 		"sharingDisabledByOrganization": "Freigabe von der Organisation deaktiviert",
 		"shareSuccessOrganization": "Organisationslink in die Zwischenablage kopiert",
 		"shareSuccessPublic": "Öffentlicher Link in die Zwischenablage kopiert",
-		"openInCloud": "Aufgabe in Roo Code Cloud öffnen",
-		"openInCloudIntro": "Überwache oder interagiere mit Roo von überall aus. Scanne, klicke oder kopiere zum Öffnen.",
 		"openApiHistory": "API-Verlauf öffnen",
 		"openUiHistory": "UI-Verlauf öffnen",
 		"backToParentTask": "Übergeordnete Aufgabe"
 	},
 	"unpin": "Lösen von oben",
 	"pin": "Anheften",
+	"fileChangesInConversation": {
+		"header": "{{count}} Datei(en) in dieser Unterhaltung geändert"
+	},
 	"tokenProgress": {
 		"availableSpace": "Verfügbarer Speicher: {{amount}} Tokens",
 		"tokensUsed": "Verwendete Tokens: {{used}} von {{total}}",
@@ -347,9 +348,9 @@
 		},
 		"release": {
 			"heading": "Was ist neu:",
-			"sonnet46": "Claude Sonnet 4.6: Volle Unterstützung für Anthropics neuestes Claude Sonnet 4.6 Modell bei allen Anbietern — Anthropic, Bedrock, Vertex, OpenRouter und Vercel AI Gateway.",
-			"stabilityFixes": "Stabilitätsverbesserungen: Delegierungs-Lebenszyklus gegen Race Conditions gehärtet, Erhaltung des Chat-Verlaufs bei Navigation und Aufgabenwiederaufnahme behoben und Scroll-Verankerungsprobleme für ein flüssigeres Erlebnis gelöst.",
-			"lockedApiConfig": "Gesperrte API-Konfiguration: Ein neuer Sperr-Schalter ermöglicht es dir, deine API-Konfiguration über alle Modi in einem Workspace zu fixieren, sodass ein Moduswechsel deine Anbietereinstellungen nicht mehr zurücksetzt."
+			"geminiPro": "Gemini 3.1 Pro Unterstützung: Gemini 3.1 Pro wurde als Modell hinzugefügt und als Standard-Gemini-Modell für bessere Leistung festgelegt.",
+			"cliNdjson": "CLI NDJSON-Protokoll: Neues NDJSON-stdin-Protokoll, List-Unterbefehle und modularisierter Run-Befehl für flexiblere CLI-Workflows.",
+			"cliRelease": "CLI v0.1.0: Das Roo Code CLI erreicht seine erste offizielle Veröffentlichung mit einer stabilen Befehlsoberfläche."
 		},
 		"cloudAgents": {
 			"heading": "Neu in der Cloud:",
@@ -426,7 +427,8 @@
 		"indexing": "Indizierung {{percentage}}%",
 		"indexed": "Indiziert",
 		"error": "Index-Fehler",
-		"status": "Index-Status"
+		"status": "Index-Status",
+		"stopping": "Indexierung wird gestoppt..."
 	},
 	"versionIndicator": {
 		"ariaLabel": "Version {{version}} - Klicken Sie, um die Versionshinweise anzuzeigen"

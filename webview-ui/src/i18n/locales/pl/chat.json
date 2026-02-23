@@ -25,14 +25,15 @@
 		"sharingDisabledByOrganization": "Udostępnianie wyłączone przez organizację",
 		"shareSuccessOrganization": "Link organizacji skopiowany do schowka",
 		"shareSuccessPublic": "Link publiczny skopiowany do schowka",
-		"openInCloud": "Otwórz zadanie w Roo Code Cloud",
-		"openInCloudIntro": "Kontynuuj monitorowanie lub interakcję z Roo z dowolnego miejsca. Zeskanuj, kliknij lub skopiuj, aby otworzyć.",
 		"openApiHistory": "Otwórz historię API",
 		"openUiHistory": "Otwórz historię UI",
 		"backToParentTask": "Zadanie nadrzędne"
 	},
 	"unpin": "Odepnij",
 	"pin": "Przypnij",
+	"fileChangesInConversation": {
+		"header": "{{count}} plik(ów) zmienionych w tej rozmowie"
+	},
 	"tokenProgress": {
 		"availableSpace": "Dostępne miejsce: {{amount}} tokenów",
 		"tokensUsed": "Wykorzystane tokeny: {{used}} z {{total}}",
@@ -347,9 +348,9 @@
 		},
 		"release": {
 			"heading": "Co nowego:",
-			"sonnet46": "Claude Sonnet 4.6: Pełne wsparcie dla najnowszego modelu Claude Sonnet 4.6 od Anthropic u wszystkich dostawców — Anthropic, Bedrock, Vertex, OpenRouter i Vercel AI Gateway.",
-			"stabilityFixes": "Ulepszenia stabilności: Wzmocnienie cyklu życia delegacji przeciwko warunkom wyścigu, naprawa zachowania historii czatu podczas nawigacji i wznawiania zadań oraz rozwiązanie problemów z zakotwiczaniem przewijania dla płynniejszego działania.",
-			"lockedApiConfig": "Zablokowana konfiguracja API: Nowy przełącznik blokady pozwala przypiąć konfigurację API we wszystkich trybach w workspace, dzięki czemu przełączanie trybów nie resetuje już ustawień dostawcy."
+			"geminiPro": "Wsparcie dla Gemini 3.1 Pro: Dodano wsparcie dla modelu Gemini 3.1 Pro i ustawiono go jako domyślny model Gemini dla lepszej wydajności.",
+			"cliNdjson": "Protokół NDJSON w CLI: Nowy protokół NDJSON przez stdin, podkomendy list oraz zmodularyzowana komenda run dla bardziej elastycznych przepływów pracy CLI.",
+			"cliRelease": "CLI v0.1.0: CLI Roo Code osiąga swoją pierwszą oficjalną wersję ze stabilnym interfejsem poleceń."
 		},
 		"cloudAgents": {
 			"heading": "Nowości w chmurze:",
@@ -426,7 +427,8 @@
 		"indexing": "Indeksowanie {{percentage}}%",
 		"indexed": "Zaindeksowane",
 		"error": "Błąd indeksu",
-		"status": "Status indeksu"
+		"status": "Status indeksu",
+		"stopping": "Zatrzymywanie indeksowania..."
 	},
 	"versionIndicator": {
 		"ariaLabel": "Wersja {{version}} - Kliknij, aby wyświetlić informacje o wydaniu"
