@@ -5,6 +5,104 @@ All notable changes to the `@roo-code/cli` package will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2026-03-02
+
+### Added
+
+- **Command Exit Code in Events**: The `tool_result` event for command executions now includes an `exitCode` field, allowing CLI consumers to programmatically distinguish between successful and failed command executions without parsing output text.
+
+## [0.1.9] - 2026-03-02
+
+### Fixed
+
+- **Stdin Stream Cancel Race**: Fixed a race condition during startup cancellation in stdin-stream mode that could cause unexpected behavior when canceling tasks immediately after starting them.
+
+### Tests
+
+- **Integration Test Suite**: Added comprehensive integration test suite for stdin-stream protocol covering cancel, followup, multi-message queue, and shutdown scenarios.
+
+## [0.1.8] - 2026-03-02
+
+### Changed
+
+- **Command Execution Timeout**: Increased timeout for command execution to improve reliability for long-running operations.
+
+### Fixed
+
+- **Stdin Stream Queue Handling**: Fixed stdin stream queued messages and command output streaming to ensure messages are properly processed.
+
+## [0.1.7] - 2026-03-01
+
+### Fixed
+
+- **Stdin Stream Control Flow**: Gracefully handle control-flow errors in stdin-stream mode to prevent unexpected crashes during cancellation and shutdown sequences.
+
+### Changed
+
+- **Type Definitions**: Refactored and simplified JSON event type definitions for better type safety.
+
+## [0.1.6] - 2026-02-27
+
+### Added
+
+- **Consecutive Mistake Limit**: New `--mistake-limit` flag to configure the maximum number of consecutive mistakes before the agent pauses for intervention.
+
+### Changed
+
+- **Workspace-Scoped Sessions**: The `list sessions` command and `--resume` flag now only show and resume sessions from the current workspace directory.
+
+### Fixed
+
+- **Task Configuration Forwarding**: Task configuration (custom modes, disabled tools, etc.) passed via the stdin-prompt-stream protocol is now correctly forwarded to the extension host instead of being silently dropped.
+- **Stream Error Recovery**: Improved recovery from streaming errors to prevent task interruption.
+
+## [0.1.5] - 2026-02-26
+
+### Added
+
+- **Session History**: New `list sessions` subcommand to view recent CLI sessions with task IDs, timestamps, and initial prompts.
+- **Session Resume**: New `--resume <taskId>` flag to continue a previous session from where it left off.
+- **Upgrade Command**: New `upgrade` command to check for and install the latest CLI version.
+
+## [0.1.4] - 2026-02-26
+
+### Fixed
+
+- **Exception Handling**: Improved recovery from unhandled exceptions in the CLI to prevent unexpected crashes.
+
+## [0.1.3] - 2026-02-25
+
+### Fixed
+
+- **Task Resumption**: Fixed an issue where resuming a previously suspended task could fail due to state initialization timing in the extension host.
+
+## [0.1.2] - 2026-02-25
+
+### Changed
+
+- **Streaming Deltas**: Tool use ask messages (command, tool, mcp) are now streamed as structured deltas instead of full snapshots in json-event-emitter for improved efficiency.
+- **Task ID Propagation**: Task ID is now generated upfront and propagated through runTask/createTask so currentTaskId is available in extension state immediately.
+- **Custom Tools**: Enabled customTools experiment in extension host.
+
+### Fixed
+
+- **Cancel Recovery**: Wait for resumable state after cancel before processing follow-up messages to prevent race conditions in stdin-stream.
+- **Custom Tool Schema**: Provide valid empty JSON Schema for custom tools without parameters to fix strict-mode API validation.
+- **Path Handling**: Skip paths outside cwd in RooProtectedController to avoid RangeError.
+- **Retry Handling**: Silently handle abort during exponential backoff retry countdown.
+- Fixed spelling/grammar and casing inconsistencies.
+
+### Added
+
+- **Telemetry Control**: Added `ROO_CODE_DISABLE_TELEMETRY=1` environment variable to disable cloud telemetry.
+
+## [0.1.1] - 2026-02-24
+
+### Added
+
+- **Roo Model Warmup**: When configured with the Roo provider, the CLI now proactively fetches and warms the model list during activation so that model information is available before the first prompt is sent. The warmup has a 10s timeout and failures are logged only in debug mode.
+- **Unbound Provider**: Added Unbound as an available provider option.
+
 ## [0.1.0] - 2026-02-19
 
 ### Added

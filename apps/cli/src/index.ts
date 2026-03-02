@@ -2,7 +2,17 @@ import { Command } from "commander"
 
 import { DEFAULT_FLAGS } from "@/types/constants.js"
 import { VERSION } from "@/lib/utils/version.js"
-import { run, login, logout, status, listCommands, listModes, listModels } from "@/commands/index.js"
+import {
+	run,
+	login,
+	logout,
+	status,
+	listCommands,
+	listModes,
+	listModels,
+	listSessions,
+	upgrade,
+} from "@/commands/index.js"
 
 const program = new Command()
 
@@ -10,15 +20,24 @@ program
 	.name("roo")
 	.description("Roo Code CLI - starts an interactive session by default, use -p/--print for non-interactive output")
 	.version(VERSION)
+	.enablePositionalOptions()
+	.passThroughOptions()
 
 program
 	.argument("[prompt]", "Your prompt")
 	.option("--prompt-file <path>", "Read prompt from a file instead of command line argument")
+	.option("--session-id <task-id>", "Resume a specific task by task ID")
+	.option("-c, --continue", "Resume the most recent task in the current workspace", false)
 	.option("-w, --workspace <path>", "Workspace directory path (defaults to current working directory)")
 	.option("-p, --print", "Print response and exit (non-interactive mode)", false)
 	.option(
 		"--stdin-prompt-stream",
 		"Read NDJSON commands from stdin (requires --print and --output-format stream-json)",
+		false,
+	)
+	.option(
+		"--signal-only-exit",
+		"Do not exit from normal completion/errors; only terminate on SIGINT/SIGTERM (intended for stdin stream harnesses)",
 		false,
 	)
 	.option("-e, --extension <path>", "Path to the extension bundle directory")
@@ -33,6 +52,11 @@ program
 		"Reasoning effort level (unspecified, disabled, none, minimal, low, medium, high, xhigh)",
 		DEFAULT_FLAGS.reasoningEffort,
 	)
+	.option(
+		"--consecutive-mistake-limit <limit>",
+		"Consecutive error/repetition limit before guidance prompt (0 disables the limit)",
+		(value) => Number.parseInt(value, 10),
+	)
 	.option("--exit-on-error", "Exit on API request errors instead of retrying", false)
 	.option("--ephemeral", "Run without persisting state (uses temporary storage)", false)
 	.option("--oneshot", "Exit upon task completion", false)
@@ -43,7 +67,11 @@ program
 	)
 	.action(run)
 
-const listCommand = program.command("list").description("List commands, modes, or models")
+const listCommand = program
+	.command("list")
+	.description("List commands, modes, models, or sessions")
+	.enablePositionalOptions()
+	.passThroughOptions()
 
 const applyListOptions = (command: Command) =>
 	command
@@ -54,6 +82,17 @@ const applyListOptions = (command: Command) =>
 		.option("-d, --debug", "Enable debug output", false)
 
 const runListAction = async (action: () => Promise<void>) => {
+	try {
+		await action()
+		process.exit(0)
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error)
+		console.error(`[CLI] Error: ${message}`)
+		process.exit(1)
+	}
+}
+
+const runUpgradeAction = async (action: () => Promise<void>) => {
 	try {
 		await action()
 		process.exit(0)
@@ -81,6 +120,19 @@ applyListOptions(listCommand.command("models").description("List available Roo m
 		await runListAction(() => listModels(options))
 	},
 )
+
+applyListOptions(listCommand.command("sessions").description("List task sessions")).action(
+	async (options: Parameters<typeof listSessions>[0]) => {
+		await runListAction(() => listSessions(options))
+	},
+)
+
+program
+	.command("upgrade")
+	.description("Upgrade Roo Code CLI to the latest version")
+	.action(async () => {
+		await runUpgradeAction(() => upgrade())
+	})
 
 const authCommand = program.command("auth").description("Manage authentication for Roo Code Cloud")
 

@@ -4,16 +4,19 @@ import { fileURLToPath } from "url"
 
 import pWaitFor from "p-wait-for"
 
+import type { TaskSessionEntry } from "@roo-code/core/cli"
 import type { Command, ModelRecord, WebviewMessage } from "@roo-code/types"
 import { getProviderDefaultModelId } from "@roo-code/types"
 
 import { ExtensionHost, type ExtensionHostOptions } from "@/agent/index.js"
+import { readWorkspaceTaskSessions } from "@/lib/task-history/index.js"
 import { loadToken } from "@/lib/storage/index.js"
 import { getDefaultExtensionPath } from "@/lib/utils/extension.js"
 import { getApiKeyFromEnv } from "@/lib/utils/provider.js"
 import { isRecord } from "@/lib/utils/guards.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 const REQUEST_TIMEOUT_MS = 10_000
 
 type ListFormat = "json" | "text"
@@ -28,6 +31,8 @@ type BaseListOptions = {
 
 type CommandLike = Pick<Command, "name" | "source" | "filePath" | "description" | "argumentHint">
 type ModeLike = { slug: string; name: string }
+type SessionLike = TaskSessionEntry
+type ListHostOptions = { ephemeral: boolean }
 
 export function parseFormat(rawFormat: string | undefined): ListFormat {
 	const format = (rawFormat ?? "json").toLowerCase()
@@ -81,7 +86,24 @@ function outputModelsText(models: ModelRecord): void {
 	}
 }
 
-async function createListHost(options: BaseListOptions): Promise<ExtensionHost> {
+function formatSessionTitle(task: string): string {
+	const compact = task.replace(/\s+/g, " ").trim()
+
+	if (!compact) {
+		return "(untitled)"
+	}
+
+	return compact.length <= 120 ? compact : `${compact.slice(0, 117)}...`
+}
+
+function outputSessionsText(sessions: SessionLike[]): void {
+	for (const session of sessions) {
+		const startedAt = Number.isFinite(session.ts) ? new Date(session.ts).toISOString() : "unknown-time"
+		process.stdout.write(`${session.id}\t${startedAt}\t${formatSessionTitle(session.task)}\n`)
+	}
+}
+
+async function createListHost(options: BaseListOptions, hostOptions: ListHostOptions): Promise<ExtensionHost> {
 	const workspacePath = resolveWorkspacePath(options.workspace)
 	const extensionPath = resolveExtensionPath(options.extension)
 	const apiKey = options.apiKey || (await loadToken()) || getApiKeyFromEnv("roo")
@@ -96,7 +118,7 @@ async function createListHost(options: BaseListOptions): Promise<ExtensionHost> 
 		workspacePath,
 		extensionPath,
 		nonInteractive: true,
-		ephemeral: true,
+		ephemeral: hostOptions.ephemeral,
 		debug: options.debug ?? false,
 		exitOnComplete: true,
 		exitOnError: false,
@@ -104,6 +126,7 @@ async function createListHost(options: BaseListOptions): Promise<ExtensionHost> 
 	}
 
 	const host = new ExtensionHost(extensionHostOptions)
+
 	await host.activate()
 
 	// Best effort wait; mode/commands requests can still succeed without this.
@@ -217,9 +240,10 @@ function requestRooModels(host: ExtensionHost): Promise<ModelRecord> {
 
 async function withHostAndSignalHandlers<T>(
 	options: BaseListOptions,
+	hostOptions: ListHostOptions,
 	fn: (host: ExtensionHost) => Promise<T>,
 ): Promise<T> {
-	const host = await createListHost(options)
+	const host = await createListHost(options, hostOptions)
 
 	const shutdown = async (exitCode: number) => {
 		await host.dispose()
@@ -244,7 +268,7 @@ async function withHostAndSignalHandlers<T>(
 export async function listCommands(options: BaseListOptions): Promise<void> {
 	const format = parseFormat(options.format)
 
-	await withHostAndSignalHandlers(options, async (host) => {
+	await withHostAndSignalHandlers(options, { ephemeral: true }, async (host) => {
 		const commands = await requestCommands(host)
 
 		if (format === "json") {
@@ -259,7 +283,7 @@ export async function listCommands(options: BaseListOptions): Promise<void> {
 export async function listModes(options: BaseListOptions): Promise<void> {
 	const format = parseFormat(options.format)
 
-	await withHostAndSignalHandlers(options, async (host) => {
+	await withHostAndSignalHandlers(options, { ephemeral: true }, async (host) => {
 		const modes = await requestModes(host)
 
 		if (format === "json") {
@@ -274,7 +298,7 @@ export async function listModes(options: BaseListOptions): Promise<void> {
 export async function listModels(options: BaseListOptions): Promise<void> {
 	const format = parseFormat(options.format)
 
-	await withHostAndSignalHandlers(options, async (host) => {
+	await withHostAndSignalHandlers(options, { ephemeral: true }, async (host) => {
 		const models = await requestRooModels(host)
 
 		if (format === "json") {
@@ -284,4 +308,17 @@ export async function listModels(options: BaseListOptions): Promise<void> {
 
 		outputModelsText(models)
 	})
+}
+
+export async function listSessions(options: BaseListOptions): Promise<void> {
+	const format = parseFormat(options.format)
+	const workspacePath = resolveWorkspacePath(options.workspace)
+	const sessions = await readWorkspaceTaskSessions(workspacePath)
+
+	if (format === "json") {
+		outputJson({ workspace: workspacePath, sessions })
+		return
+	}
+
+	outputSessionsText(sessions)
 }

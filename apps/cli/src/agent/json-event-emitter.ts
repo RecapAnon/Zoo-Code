@@ -96,6 +96,7 @@ export class JsonEventEmitter {
 	private stdout: NodeJS.WriteStream
 	private events: JsonEvent[] = []
 	private unsubscribers: (() => void)[] = []
+	private pendingWrites = new Set<Promise<void>>()
 	private lastCost: JsonEventCost | undefined
 	private requestIdProvider: () => string | undefined
 	private schemaVersion: number
@@ -104,6 +105,18 @@ export class JsonEventEmitter {
 	private seenMessageIds = new Set<number>()
 	// Track previous content for delta computation
 	private previousContent = new Map<number, string>()
+	// Track previous tool-use content for structured (non-append-only) delta computation.
+	private previousToolUseContent = new Map<number, string>()
+	// Track the currently active execute_command tool_use id for command_output correlation.
+	private activeCommandToolUseId: number | undefined
+	// Track command output snapshots by command tool-use id for delta computation.
+	private previousCommandOutputByToolUseId = new Map<number, string>()
+	// Track command ids whose output is being streamed from commandExecutionStatus updates.
+	private statusDrivenCommandOutputIds = new Set<number>()
+	// Track command ids that already emitted a terminal command_output done event.
+	private completedCommandOutputIds = new Set<number>()
+	// Suppress the next say:command_output completion message after status-driven streaming.
+	private suppressNextCommandOutputSay = false
 	// Track the completion result content
 	private completionResultContent: string | undefined
 	// Track the latest assistant text as a fallback for result.content.
@@ -153,7 +166,7 @@ export class JsonEventEmitter {
 	emitControl(event: {
 		subtype: "ack" | "done" | "error"
 		requestId?: string
-		command?: string
+		command?: JsonEvent["command"]
 		taskId?: string
 		content?: string
 		success?: boolean
@@ -225,10 +238,164 @@ export class JsonEventEmitter {
 	}
 
 	/**
+	 * Compute a compact delta for structured strings (for tool_use snapshots).
+	 *
+	 * Unlike append-only text streams, tool-use payloads are often full snapshots
+	 * where edits happen before a stable suffix (e.g., inside JSON strings). This
+	 * extracts the inserted segment when possible; otherwise it falls back to the
+	 * full snapshot so consumers can recover.
+	 */
+	private computeStructuredDelta(msgId: number, fullContent: string | undefined): string | null {
+		if (!fullContent) {
+			return null
+		}
+
+		const previous = this.previousToolUseContent.get(msgId) || ""
+
+		if (fullContent === previous) {
+			return null
+		}
+
+		this.previousToolUseContent.set(msgId, fullContent)
+
+		if (previous.length === 0) {
+			return fullContent
+		}
+
+		if (fullContent.startsWith(previous)) {
+			return fullContent.slice(previous.length)
+		}
+
+		let prefix = 0
+
+		while (prefix < previous.length && prefix < fullContent.length && previous[prefix] === fullContent[prefix]) {
+			prefix++
+		}
+
+		let suffix = 0
+
+		while (
+			suffix < previous.length - prefix &&
+			suffix < fullContent.length - prefix &&
+			previous[previous.length - 1 - suffix] === fullContent[fullContent.length - 1 - suffix]
+		) {
+			suffix++
+		}
+
+		const isPureInsertion = fullContent.length >= previous.length && prefix + suffix >= previous.length
+
+		if (isPureInsertion) {
+			return fullContent.slice(prefix, fullContent.length - suffix)
+		}
+
+		return fullContent
+	}
+
+	/**
 	 * Check if this is a streaming partial message with no new content.
 	 */
 	private isEmptyStreamingDelta(content: string | null): boolean {
 		return this.mode === "stream-json" && content === null
+	}
+
+	private computeCommandOutputDelta(commandId: number, fullOutput: string | undefined): string | null {
+		const normalized = fullOutput ?? ""
+		const previous = this.previousCommandOutputByToolUseId.get(commandId) || ""
+
+		if (normalized === previous) {
+			return null
+		}
+
+		this.previousCommandOutputByToolUseId.set(commandId, normalized)
+		return normalized.startsWith(previous) ? normalized.slice(previous.length) : normalized
+	}
+
+	private emitCommandOutputEvent(
+		commandId: number,
+		fullOutput: string | undefined,
+		isDone: boolean,
+		exitCode?: number,
+	): void {
+		if (this.mode === "stream-json") {
+			const outputDelta = this.computeCommandOutputDelta(commandId, fullOutput)
+			const event: JsonEvent = {
+				type: "tool_result",
+				id: commandId,
+				subtype: "command",
+				tool_result: { name: "execute_command" },
+			}
+
+			if (outputDelta !== null && outputDelta.length > 0) {
+				event.tool_result = { name: "execute_command", output: outputDelta }
+			}
+
+			if (isDone && exitCode !== undefined) {
+				event.tool_result = {
+					...(event.tool_result ?? { name: "execute_command" }),
+					exitCode,
+				}
+			}
+
+			if (isDone) {
+				event.done = true
+				this.previousCommandOutputByToolUseId.delete(commandId)
+				this.statusDrivenCommandOutputIds.delete(commandId)
+				this.completedCommandOutputIds.add(commandId)
+				if (this.activeCommandToolUseId === commandId) {
+					this.activeCommandToolUseId = undefined
+				}
+			}
+
+			// Suppress empty partial updates that carry no delta.
+			if (!isDone && outputDelta === null) {
+				return
+			}
+
+			this.emitEvent(event)
+			return
+		}
+
+		this.emitEvent({
+			type: "tool_result",
+			id: commandId,
+			subtype: "command",
+			tool_result: {
+				name: "execute_command",
+				output: fullOutput,
+				...(isDone && exitCode !== undefined ? { exitCode } : {}),
+			},
+			...(isDone ? { done: true } : {}),
+		})
+
+		if (isDone) {
+			this.previousCommandOutputByToolUseId.delete(commandId)
+			this.statusDrivenCommandOutputIds.delete(commandId)
+			this.completedCommandOutputIds.add(commandId)
+			if (this.activeCommandToolUseId === commandId) {
+				this.activeCommandToolUseId = undefined
+			}
+		}
+	}
+
+	public emitCommandOutputChunk(outputSnapshot: string): void {
+		const commandId = this.activeCommandToolUseId
+		if (commandId === undefined) {
+			return
+		}
+
+		this.statusDrivenCommandOutputIds.add(commandId)
+		this.emitCommandOutputEvent(commandId, outputSnapshot, false)
+	}
+
+	public emitCommandOutputDone(exitCode?: number): void {
+		const commandId = this.activeCommandToolUseId
+		if (commandId === undefined) {
+			return
+		}
+
+		this.statusDrivenCommandOutputIds.add(commandId)
+		this.suppressNextCommandOutputSay = true
+		this.emitCommandOutputEvent(commandId, undefined, true, exitCode)
 	}
 
 	/**
@@ -238,6 +405,7 @@ export class JsonEventEmitter {
 		if (this.mode === "stream-json" && isPartial) {
 			return this.computeDelta(msgId, text)
 		}
+
 		return text ?? null
 	}
 
@@ -252,15 +420,19 @@ export class JsonEventEmitter {
 		subtype?: string,
 	): JsonEvent {
 		const event: JsonEvent = { type, id }
+
 		if (content !== null) {
 			event.content = content
 		}
+
 		if (subtype) {
 			event.subtype = subtype
 		}
+
 		if (isDone) {
 			event.done = true
 		}
+
 		return event
 	}
 
@@ -283,21 +455,22 @@ export class JsonEventEmitter {
 		if (isDone) {
 			this.seenMessageIds.add(msg.ts)
 			this.previousContent.delete(msg.ts)
-		}
-
-		const contentToSend = this.getContentToSend(msg.ts, msg.text, msg.partial ?? false)
-
-		// Skip if no new content for streaming partial messages
-		if (msg.partial && this.isEmptyStreamingDelta(contentToSend)) {
-			return
+			this.previousToolUseContent.delete(msg.ts)
 		}
 
 		if (msg.type === "say" && msg.say) {
+			const contentToSend = this.getContentToSend(msg.ts, msg.text, msg.partial ?? false)
+
+			// Skip if no new content for streaming partial messages
+			if (msg.partial && this.isEmptyStreamingDelta(contentToSend)) {
+				return
+			}
+
 			this.handleSayMessage(msg, contentToSend, isDone)
 		}
 
 		if (msg.type === "ask" && msg.ask) {
-			this.handleAskMessage(msg, contentToSend, isDone)
+			this.handleAskMessage(msg, isDone)
 		}
 	}
 
@@ -329,10 +502,7 @@ export class JsonEventEmitter {
 				break
 
 			case "command_output":
-				this.emitEvent({
-					type: "tool_result",
-					tool_result: { name: "execute_command", output: msg.text },
-				})
+				this.handleCommandOutputMessage(msg, isDone)
 				break
 
 			case "user_feedback":
@@ -398,40 +568,31 @@ export class JsonEventEmitter {
 	/**
 	 * Handle "ask" type messages.
 	 */
-	private handleAskMessage(msg: ClineMessage, contentToSend: string | null, isDone: boolean): void {
+	private handleAskMessage(msg: ClineMessage, isDone: boolean): void {
 		switch (msg.ask) {
-			case "tool": {
-				const toolInfo = parseToolInfo(msg.text)
-				this.emitEvent({
-					type: "tool_use",
-					id: msg.ts,
-					subtype: "tool",
-					tool_use: toolInfo ?? { name: "unknown_tool", input: { raw: msg.text } },
-				})
+			case "tool":
+				this.handleToolUseAsk(msg, "tool", isDone)
 				break
-			}
 
 			case "command":
-				this.emitEvent({
-					type: "tool_use",
-					id: msg.ts,
-					subtype: "command",
-					tool_use: { name: "execute_command", input: { command: msg.text } },
-				})
+				this.handleToolUseAsk(msg, "command", isDone)
 				break
 
 			case "use_mcp_server":
-				this.emitEvent({
-					type: "tool_use",
-					id: msg.ts,
-					subtype: "mcp",
-					tool_use: { name: "mcp_server", input: { raw: msg.text } },
-				})
+				this.handleToolUseAsk(msg, "mcp", isDone)
 				break
 
-			case "followup":
+			case "followup": {
+				const contentToSend = this.getContentToSend(msg.ts, msg.text, msg.partial ?? false)
+
+				// Skip if no new content for streaming partial messages
+				if (msg.partial && this.isEmptyStreamingDelta(contentToSend)) {
+					return
+				}
+
 				this.emitEvent(this.buildTextEvent("assistant", msg.ts, contentToSend, isDone, "followup"))
 				break
+			}
 
 			case "command_output":
 				// Handled in say type
@@ -445,18 +606,128 @@ export class JsonEventEmitter {
 
 			default:
 				if (msg.text) {
+					const contentToSend = this.getContentToSend(msg.ts, msg.text, msg.partial ?? false)
+
+					// Skip if no new content for streaming partial messages
+					if (msg.partial && this.isEmptyStreamingDelta(contentToSend)) {
+						return
+					}
+
 					this.emitEvent(this.buildTextEvent("assistant", msg.ts, contentToSend, isDone, msg.ask))
 				}
 				break
 		}
 	}
 
+	private handleToolUseAsk(msg: ClineMessage, subtype: "tool" | "command" | "mcp", isDone: boolean): void {
+		const isStreamingPartial = this.mode === "stream-json" && msg.partial === true
+		const toolInfo = parseToolInfo(msg.text)
+
+		if (subtype === "command") {
+			this.activeCommandToolUseId = msg.ts
+			this.completedCommandOutputIds.delete(msg.ts)
+			this.suppressNextCommandOutputSay = false
+
+			if (isStreamingPartial) {
+				const commandDelta = this.computeStructuredDelta(msg.ts, msg.text)
+				if (commandDelta === null) {
+					return
+				}
+
+				this.emitEvent({
+					type: "tool_use",
+					id: msg.ts,
+					subtype: "command",
+					content: commandDelta,
+					tool_use: { name: "execute_command", input: { command: commandDelta } },
+				})
+				return
+			}
+
+			this.emitEvent({
+				type: "tool_use",
+				id: msg.ts,
+				subtype: "command",
+				tool_use: { name: "execute_command", input: { command: msg.text } },
+				...(isDone ? { done: true } : {}),
+			})
+			return
+		}
+
+		if (subtype === "mcp") {
+			if (isStreamingPartial) {
+				const mcpDelta = this.computeStructuredDelta(msg.ts, msg.text)
+				if (mcpDelta === null) {
+					return
+				}
+
+				this.emitEvent({
+					type: "tool_use",
+					id: msg.ts,
+					subtype: "mcp",
+					content: mcpDelta,
+					tool_use: { name: "mcp_server" },
+				})
+				return
+			}
+
+			this.emitEvent({
+				type: "tool_use",
+				id: msg.ts,
+				subtype: "mcp",
+				tool_use: { name: "mcp_server", input: { raw: msg.text } },
+				...(isDone ? { done: true } : {}),
+			})
+			return
+		}
+
+		if (isStreamingPartial) {
+			const toolDelta = this.computeStructuredDelta(msg.ts, msg.text)
+			if (toolDelta === null) {
+				return
+			}
+
+			this.emitEvent({
+				type: "tool_use",
+				id: msg.ts,
+				subtype: "tool",
+				content: toolDelta,
+				tool_use: { name: toolInfo?.name ?? "unknown_tool" },
+			})
+			return
+		}
+
+		this.emitEvent({
+			type: "tool_use",
+			id: msg.ts,
+			subtype: "tool",
+			tool_use: toolInfo ?? { name: "unknown_tool", input: { raw: msg.text } },
+			...(isDone ? { done: true } : {}),
+		})
+	}
+
+	private handleCommandOutputMessage(msg: ClineMessage, isDone: boolean): void {
+		if (this.suppressNextCommandOutputSay) {
+			if (isDone) {
+				this.suppressNextCommandOutputSay = false
+			}
+			return
+		}
+
+		const commandId = this.activeCommandToolUseId ?? msg.ts
+		if (this.statusDrivenCommandOutputIds.has(commandId) || this.completedCommandOutputIds.has(commandId)) {
+			return
+		}
+		this.emitCommandOutputEvent(commandId, msg.text, isDone)
+	}
+
 	/**
 	 * Handle task completion and emit result event.
 	 */
 	private handleTaskCompleted(event: TaskCompletedEvent): void {
-		// Use tracked completion result content, falling back to event message
-		const resultContent = this.completionResultContent || event.message?.text || this.lastAssistantText
+		// Prefer the completion payload from the current event. If it is empty,
+		// fall back to the most recent tracked completion text, then assistant text.
+		const resultContent = event.message?.text || this.completionResultContent || this.lastAssistantText
 
 		this.emitEvent({
 			type: "result",
@@ -466,6 +737,10 @@ export class JsonEventEmitter {
 			success: event.success,
 			cost: this.lastCost,
 		})
+
+		// Prevent stale completion content from leaking into later turns.
+		this.completionResultContent = undefined
+		this.lastAssistantText = undefined
 
 		// For "json" mode, output the final accumulated result
 		if (this.mode === "json") {
@@ -504,7 +779,7 @@ export class JsonEventEmitter {
 	 * Output a single JSON line (NDJSON format).
 	 */
 	private outputLine(data: unknown): void {
-		this.stdout.write(JSON.stringify(data) + "\n")
+		this.writeToStdout(JSON.stringify(data) + "\n")
 	}
 
 	/**
@@ -519,7 +794,31 @@ export class JsonEventEmitter {
 			events: this.events.filter((e) => e.type !== "result"), // Exclude the result event itself
 		}
 
-		this.stdout.write(JSON.stringify(output, null, 2) + "\n")
+		this.writeToStdout(JSON.stringify(output, null, 2) + "\n")
+	}
+
+	private writeToStdout(content: string): void {
+		const writePromise = new Promise<void>((resolve, reject) => {
+			this.stdout.write(content, (error?: Error | null) => {
+				if (error) {
+					reject(error)
+					return
+				}
+				resolve()
+			})
+		})
+
+		this.pendingWrites.add(writePromise)
+
+		void writePromise.finally(() => {
+			this.pendingWrites.delete(writePromise)
+		})
+	}
+
+	async flush(): Promise<void> {
+		while (this.pendingWrites.size > 0) {
+			await Promise.all([...this.pendingWrites])
+		}
 	}
 
 	/**
@@ -537,6 +836,12 @@ export class JsonEventEmitter {
 		this.lastCost = undefined
 		this.seenMessageIds.clear()
 		this.previousContent.clear()
+		this.previousToolUseContent.clear()
+		this.activeCommandToolUseId = undefined
+		this.previousCommandOutputByToolUseId.clear()
+		this.statusDrivenCommandOutputIds.clear()
+		this.completedCommandOutputIds.clear()
+		this.suppressNextCommandOutputSay = false
 		this.completionResultContent = undefined
 		this.lastAssistantText = undefined
 		this.expectPromptEchoAsUser = true
