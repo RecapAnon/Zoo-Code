@@ -20,6 +20,7 @@ export type ReasoningEffortFlagOptions = ReasoningEffortExtended | "unspecified"
 
 export type FlagOptions = {
 	promptFile?: string
+	createWithSessionId?: string
 	sessionId?: string
 	continue: boolean
 	workspace?: string
@@ -34,6 +35,7 @@ export type FlagOptions = {
 	provider?: SupportedProvider
 	model?: string
 	mode?: string
+	terminalShell?: string
 	reasoningEffort?: ReasoningEffortFlagOptions
 	consecutiveMistakeLimit?: number
 	ephemeral: boolean

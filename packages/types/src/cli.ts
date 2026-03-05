@@ -19,9 +19,16 @@ export const rooCliCommandBaseSchema = z.object({
 
 export type RooCliCommandBase = z.infer<typeof rooCliCommandBaseSchema>
 
+const rooCliSessionIdSchema = z
+	.string()
+	.trim()
+	.regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+
 export const rooCliStartCommandSchema = rooCliCommandBaseSchema.extend({
 	command: z.literal("start"),
 	prompt: z.string(),
+	taskId: rooCliSessionIdSchema.optional(),
+	images: z.array(z.string()).optional(),
 	configuration: rooCodeSettingsSchema.optional(),
 })
 
@@ -30,6 +37,7 @@ export type RooCliStartCommand = z.infer<typeof rooCliStartCommandSchema>
 export const rooCliMessageCommandSchema = rooCliCommandBaseSchema.extend({
 	command: z.literal("message"),
 	prompt: z.string(),
+	images: z.array(z.string()).optional(),
 })
 
 export type RooCliMessageCommand = z.infer<typeof rooCliMessageCommandSchema>

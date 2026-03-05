@@ -12,7 +12,20 @@ describe("CLI types", () => {
 				command: "start",
 				requestId: "req-1",
 				prompt: "hello",
+				taskId: "018f7fc8-7c96-7f7c-98aa-2ec4ff7f6d87",
+				images: ["data:image/png;base64,abc"],
 				configuration: {},
+			})
+
+			expect(result.success).toBe(true)
+		})
+
+		it("validates a message command with images", () => {
+			const result = rooCliInputCommandSchema.safeParse({
+				command: "message",
+				requestId: "req-2a",
+				prompt: "follow up",
+				images: ["data:image/png;base64,xyz"],
 			})
 
 			expect(result.success).toBe(true)
@@ -22,6 +35,17 @@ describe("CLI types", () => {
 			const result = rooCliInputCommandSchema.safeParse({
 				command: "message",
 				requestId: "req-2",
+			})
+
+			expect(result.success).toBe(false)
+		})
+
+		it("rejects a start command with invalid taskId format", () => {
+			const result = rooCliInputCommandSchema.safeParse({
+				command: "start",
+				requestId: "req-invalid-task-id",
+				prompt: "hello",
+				taskId: "task-123",
 			})
 
 			expect(result.success).toBe(false)

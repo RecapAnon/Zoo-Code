@@ -26,7 +26,8 @@ program
 program
 	.argument("[prompt]", "Your prompt")
 	.option("--prompt-file <path>", "Read prompt from a file instead of command line argument")
-	.option("--session-id <task-id>", "Resume a specific task by task ID")
+	.option("--create-with-session-id <session-id>", "Create a new task with a specific session ID (must be a UUID)")
+	.option("--session-id <session-id>", "Resume a specific task by session ID")
 	.option("-c, --continue", "Resume the most recent task in the current workspace", false)
 	.option("-w, --workspace <path>", "Workspace directory path (defaults to current working directory)")
 	.option("-p, --print", "Print response and exit (non-interactive mode)", false)
@@ -47,6 +48,7 @@ program
 	.option("--provider <provider>", "API provider (roo, anthropic, openai, openrouter, etc.)")
 	.option("-m, --model <model>", "Model to use", DEFAULT_FLAGS.model)
 	.option("--mode <mode>", "Mode to start in (code, architect, ask, debug, etc.)", DEFAULT_FLAGS.mode)
+	.option("--terminal-shell <path>", "Absolute path to shell executable for inline terminal commands")
 	.option(
 		"-r, --reasoning-effort <effort>",
 		"Reasoning effort level (unspecified, disabled, none, minimal, low, medium, high, xhigh)",

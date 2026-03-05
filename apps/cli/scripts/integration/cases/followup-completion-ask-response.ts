@@ -3,25 +3,6 @@ import { runStreamCase, StreamEvent } from "../lib/stream-harness"
 const START_PROMPT = 'Answer this question and finish: What is 1+1? Reply with only "2", then complete the task.'
 const FOLLOWUP_PROMPT = 'Different question now: what is 3+3? Reply with only "6".'
 
-function looksLikeAttemptCompletionToolUse(event: StreamEvent): boolean {
-	if (event.type !== "tool_use") {
-		return false
-	}
-
-	if (event.tool_use?.name === "attempt_completion") {
-		return true
-	}
-
-	const content = event.content ?? ""
-	return content.includes('"tool":"attempt_completion"') || content.includes('"name":"attempt_completion"')
-}
-
-function validateFollowupResult(text: string): void {
-	if (text.trim().length === 0) {
-		throw new Error("follow-up produced an empty result")
-	}
-}
-
 async function main() {
 	const startRequestId = `start-${Date.now()}`
 	const followupRequestId = `message-${Date.now()}`
@@ -30,11 +11,13 @@ async function main() {
 	let initSeen = false
 	let sentFollowup = false
 	let sentShutdown = false
-	let sawAttemptCompletion = false
+	let startAckCount = 0
+	let sawStartControlAfterFollowup = false
+	let followupDoneCode: string | undefined
 	let sawFollowupUserTurn = false
 	let sawMisroutedToolResult = false
+	let sawQueueEventForFollowupRequest = false
 	let followupResult = ""
-	let sawFirstAssistantChunkForStart = false
 
 	await runStreamCase({
 		onEvent(event: StreamEvent, context) {
@@ -54,34 +37,26 @@ async function main() {
 				)
 			}
 
-			if (!sawAttemptCompletion && looksLikeAttemptCompletionToolUse(event)) {
-				sawAttemptCompletion = true
-				if (!sentFollowup) {
-					context.sendCommand({
-						command: "message",
-						requestId: followupRequestId,
-						prompt: FOLLOWUP_PROMPT,
-					})
-					sentFollowup = true
+			if (event.type === "control" && event.command === "start" && event.subtype === "ack") {
+				startAckCount += 1
+				if (sentFollowup) {
+					sawStartControlAfterFollowup = true
 				}
 				return
 			}
 
 			if (
-				event.type === "assistant" &&
-				event.requestId === startRequestId &&
-				event.done !== true &&
-				!sawFirstAssistantChunkForStart
+				event.type === "control" &&
+				event.command === "message" &&
+				event.subtype === "done" &&
+				event.requestId === followupRequestId
 			) {
-				sawFirstAssistantChunkForStart = true
-				if (!sentFollowup) {
-					context.sendCommand({
-						command: "message",
-						requestId: followupRequestId,
-						prompt: FOLLOWUP_PROMPT,
-					})
-					sentFollowup = true
-				}
+				followupDoneCode = event.code
+				return
+			}
+
+			if (event.type === "queue" && event.requestId === followupRequestId) {
+				sawQueueEventForFollowupRequest = true
 				return
 			}
 
@@ -115,18 +90,36 @@ async function main() {
 			}
 
 			followupResult = event.content ?? ""
-			validateFollowupResult(followupResult)
+			if (followupResult.trim().length === 0) {
+				throw new Error("follow-up produced an empty result")
+			}
+
+			if (followupDoneCode !== "responded") {
+				throw new Error(
+					`follow-up message was not routed as ask response; code="${followupDoneCode ?? "none"}"`,
+				)
+			}
 
 			if (sawMisroutedToolResult) {
 				throw new Error("follow-up message was misrouted into tool_result (<user_message>), old bug reproduced")
+			}
+			if (sawQueueEventForFollowupRequest) {
+				throw new Error("follow-up message produced queue events despite responded routing")
 			}
 
 			if (!sawFollowupUserTurn) {
 				throw new Error("follow-up did not appear as a normal user turn in stream output")
 			}
 
-			console.log(`[PASS] saw attempt_completion tool use: ${sawAttemptCompletion}`)
-			console.log(`[PASS] saw start assistant chunk before follow-up: ${sawFirstAssistantChunkForStart}`)
+			if (sawStartControlAfterFollowup) {
+				throw new Error("unexpected start control event after follow-up; message should not trigger a new task")
+			}
+
+			if (startAckCount !== 1) {
+				throw new Error(`expected exactly one start ack event, saw ${startAckCount}`)
+			}
+
+			console.log(`[PASS] follow-up control code: "${followupDoneCode}"`)
 			console.log(`[PASS] follow-up user turn observed: ${sawFollowupUserTurn}`)
 			console.log(`[PASS] follow-up result: "${followupResult}"`)
 
@@ -140,13 +133,14 @@ async function main() {
 		},
 		onTimeoutMessage() {
 			return [
-				"timed out waiting for follow-up validation",
+				"timed out waiting for completion ask-response follow-up validation",
 				`initSeen=${initSeen}`,
 				`sentFollowup=${sentFollowup}`,
-				`sawAttemptCompletion=${sawAttemptCompletion}`,
-				`sawFirstAssistantChunkForStart=${sawFirstAssistantChunkForStart}`,
+				`startAckCount=${startAckCount}`,
+				`followupDoneCode=${followupDoneCode ?? "none"}`,
 				`sawFollowupUserTurn=${sawFollowupUserTurn}`,
 				`sawMisroutedToolResult=${sawMisroutedToolResult}`,
+				`sawQueueEventForFollowupRequest=${sawQueueEventForFollowupRequest}`,
 				`haveFollowupResult=${Boolean(followupResult)}`,
 			].join(" ")
 		},

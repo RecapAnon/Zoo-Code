@@ -80,6 +80,7 @@ export interface ExtensionHostOptions {
 	ephemeral: boolean
 	debug: boolean
 	exitOnComplete: boolean
+	terminalShell?: string
 	/**
 	 * When true, exit the process on API request errors instead of retrying.
 	 */
@@ -108,7 +109,7 @@ interface WebviewViewProvider {
 export interface ExtensionHostInterface extends IExtensionHost<ExtensionHostEventMap> {
 	client: ExtensionClient
 	activate(): Promise<void>
-	runTask(prompt: string, taskId?: string, configuration?: RooCodeSettings): Promise<void>
+	runTask(prompt: string, taskId?: string, configuration?: RooCodeSettings, images?: string[]): Promise<void>
 	resumeTask(taskId: string): Promise<void>
 	sendToExtension(message: WebviewMessage): void
 	dispose(): Promise<void>
@@ -256,6 +257,11 @@ export class ExtensionHost extends EventEmitter implements ExtensionHostInterfac
 				this.initialSettings.enableReasoningEffort = true
 				this.initialSettings.reasoningEffort = this.options.reasoningEffort
 			}
+		}
+
+		if (this.options.terminalShell) {
+			this.initialSettings.terminalShellIntegrationDisabled = true
+			this.initialSettings.execaShellPath = this.options.terminalShell
 		}
 	}
 
@@ -510,8 +516,19 @@ export class ExtensionHost extends EventEmitter implements ExtensionHostInterfac
 		})
 	}
 
-	public async runTask(prompt: string, taskId?: string, configuration?: RooCodeSettings): Promise<void> {
-		this.sendToExtension({ type: "newTask", text: prompt, taskId, taskConfiguration: configuration })
+	public async runTask(
+		prompt: string,
+		taskId?: string,
+		configuration?: RooCodeSettings,
+		images?: string[],
+	): Promise<void> {
+		this.sendToExtension({
+			type: "newTask",
+			text: prompt,
+			taskId,
+			taskConfiguration: configuration,
+			...(images !== undefined ? { images } : {}),
+		})
 		return this.waitForTaskCompletion()
 	}
 

@@ -5,6 +5,69 @@ All notable changes to the `@roo-code/cli` package will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.17] - 2026-03-04
+
+### Added
+
+- **Custom Session ID Support**: New `--create-with-session-id` flag allows specifying a custom UUID session ID when creating tasks. Session IDs are now validated as UUIDs for both create and resume operations, as well as for `start.taskId` in stdin-stream mode.
+
+### Tests
+
+- Added integration coverage for create+resume loading the correct session.
+
+## [0.1.16] - 2026-03-04
+
+### Added
+
+- **Custom Shell Selection**: New `--terminal-shell` flag to specify which shell to use for inline command execution. The shell path is validated at the CLI layer and passed through the standard settings mechanism.
+
+### Tests
+
+- Added integration coverage for stdin stream routing and race invariants.
+
+## [0.1.15] - 2026-03-03
+
+### Fixed
+
+- **Follow-up Routing for Completion Asks**: Fixed routing of follow-up messages when the agent asks for clarification (ask_followup_question) in stdin-stream mode. Messages sent after a completion ask are now correctly delivered to the agent instead of being queued.
+
+## [0.1.14] - 2026-03-03
+
+### Fixed
+
+- **Command Output Streaming**: Ensure full command output is streamed before the done event is emitted, preventing truncated output in stdin-stream mode.
+
+## [0.1.13] - 2026-03-02
+
+### Added
+
+- **Skills as Slash Commands**: Skills are now exposed as slash commands, so you can invoke skill workflows directly from command-style input.
+- **Skill Fallback Execution**: When a slash command does not match a command file but matches a skill slug, the CLI can resolve and execute that skill path.
+
+### Changed
+
+- **Slash Command Resolution Priority**: Command precedence is preserved, with skill fallback only used when no matching slash command is found.
+
+### Tests
+
+- Added and updated tests for slash command + skill fallback behavior, including command precedence and duplicate skill-slug handling.
+
+## [0.1.12] - 2026-03-02
+
+### Fixed
+
+- **Command Timeout Handling**: CLI runtime now correctly ignores model-provided background timeouts for commands, ensuring command lifetime is governed solely by the `--timeout` setting.
+
+## [0.1.11] - 2026-03-02
+
+### Added
+
+- **Image Support in Stdin Stream**: The `start` and `message` commands in stdin-stream mode now support an optional `images` field (array of base64 data URIs) to attach images to prompts.
+
+### Fixed
+
+- **Upgrade Version Detection**: Fixed version detection in the `upgrade` command to correctly identify when updates are available.
+
 ## [0.1.10] - 2026-03-02
 
 ### Added
