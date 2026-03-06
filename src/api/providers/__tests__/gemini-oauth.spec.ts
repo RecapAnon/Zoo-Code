@@ -106,6 +106,29 @@ describe("GeminiOAuthHandler", () => {
 		expect(body.request.generationConfig.thinkingConfig.include_thoughts).toBe(true)
 	})
 
+	it("does not emit JSON text fallback for STOP with empty text and still emits usage", async () => {
+		const stream = buildSseStream([
+			'data: {"response":{"candidates":[{"content":{"parts":[{"text":""}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":10,"totalTokenCount":10,"cachedContentTokenCount":4}}}',
+			"data: [DONE]",
+		])
+
+		mockFetch.mockResolvedValue({ data: stream })
+
+		const iterator = handler.createMessage(systemPrompt, messages)
+		const chunks: any[] = []
+		for await (const chunk of iterator) {
+			chunks.push(chunk)
+		}
+
+		expect(chunks.some((chunk) => chunk.type === "text")).toBe(false)
+		expect(chunks).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ type: "usage", inputTokens: 10, outputTokens: 0, cacheReadTokens: 4 }),
+				expect.objectContaining({ type: "reasoning" }),
+			]),
+		)
+	})
+
 	it("uses generateContent for completePrompt", async () => {
 		mockFetch.mockResolvedValue({
 			data: {

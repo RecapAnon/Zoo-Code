@@ -426,6 +426,17 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 					totalCost: 0,
 				}
 			}
+
+			// Gemini OAuth can occasionally return STOP with no text/tool output,
+			// but still include usage metadata. Emit a synthetic reasoning chunk so
+			// Task.ts treats this as a transient "reasoning-only" response and
+			// retries automatically instead of escalating to no-assistant-message flow.
+			if (!hasContent && !hasReasoning && finishReason === "STOP" && lastUsageMetadata) {
+				yield {
+					type: "reasoning",
+					text: "Model returned usage metadata but no actionable output. Retrying.",
+				}
+			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error)
 			const apiError = new ApiProviderError(errorMessage, this.providerName, model.id, "createMessage")
