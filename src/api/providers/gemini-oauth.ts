@@ -286,13 +286,10 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		let toolCallCounter = 0
 		let hasContent = false
 		let hasReasoning = false
-		let data = ""
 
 		try {
 			for await (const jsonData of this.parseSSEStream(body)) {
 				// Extract content from the response
-				// data = String(jsonData)
-				data = JSON.stringify(jsonData, null, 2) // The 2 adds indentation for readability
 				const response = jsonData.response || jsonData
 				if (response?.responseId) {
 					this.lastResponseId = response.responseId
@@ -405,14 +402,6 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 				throw new Error(
 					`Gemini response blocked or incomplete (finishReason: ${finishReason}). No content was returned.`,
 				)
-			}
-
-			// Some Gemini OAuth responses can end with STOP but include only an empty
-			// text part. Surface the raw response payload as a normal text chunk here
-			// so this case is handled explicitly rather than by the generic fallback.
-			if (!hasContent && finishReason === "STOP" && data) {
-				hasContent = true
-				yield { type: "text", text: data }
 			}
 
 			if (pendingGroundingMetadata) {
