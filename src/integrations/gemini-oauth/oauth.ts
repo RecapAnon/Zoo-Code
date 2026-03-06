@@ -55,17 +55,17 @@ export class GeminiOAuthManager {
 			clientId: GEMINI_OAUTH_CLIENT_ID,
 			clientSecret: GEMINI_OAUTH_CLIENT_SECRET,
 		})
-		const transporter = this.authClient.transporter as { defaults?: { headers?: Record<string, string> } }
-		const currentHeaders = transporter.defaults?.headers ?? {}
-		transporter.defaults = {
-			...transporter.defaults,
-			headers: {
-				...currentHeaders,
-				"User-Agent": GEMINI_OAUTH_API_CLIENT,
-				"X-Goog-Api-Client": GEMINI_OAUTH_API_CLIENT_PLATFORM,
-				"Client-Metadata": GEMINI_OAUTH_CLIENT_METADATA,
-			},
-		}
+		// const transporter = this.authClient.transporter as { defaults?: { headers?: Record<string, string> } }
+		// const currentHeaders = transporter.defaults?.headers ?? {}
+		// transporter.defaults = {
+		// 	...transporter.defaults,
+		// 	headers: {
+		// 		...currentHeaders,
+		// 		"User-Agent": GEMINI_OAUTH_API_CLIENT,
+		// 		"X-Goog-Api-Client": GEMINI_OAUTH_API_CLIENT_PLATFORM,
+		// 		"Client-Metadata": GEMINI_OAUTH_CLIENT_METADATA,
+		// 	},
+		// }
 	}
 
 	private resolvePath(options?: CredentialsPathOptions): string {

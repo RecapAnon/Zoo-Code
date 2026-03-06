@@ -59,9 +59,7 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		const projectId = this.options.geminiOauthProjectId
 		if (!projectId) {
 			throw new Error(
-				t("common:errors.geminiOauth.missingProjectId", {
-					defaultValue: "Gemini OAuth credentials missing project_id; set geminiOauthProjectId.",
-				}),
+				t("common:errors.geminiOauth.missingProjectId"),
 			)
 		}
 		return projectId
@@ -288,10 +286,13 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		let toolCallCounter = 0
 		let hasContent = false
 		let hasReasoning = false
+		let data = ""
 
 		try {
 			for await (const jsonData of this.parseSSEStream(body)) {
 				// Extract content from the response
+				// data = String(jsonData)
+				data = JSON.stringify(jsonData, null, 2) // The 2 adds indentation for readability
 				const response = jsonData.response || jsonData
 				if (response?.responseId) {
 					this.lastResponseId = response.responseId
@@ -441,7 +442,7 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		}
 
 		if (!hasContent) {
-			yield { type: "text", text: t("common:errors.gemini.thinking_complete_no_output") }
+			yield { type: "text", text: data }
 		}
 	}
 
