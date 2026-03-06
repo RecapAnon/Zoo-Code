@@ -407,6 +407,14 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 				)
 			}
 
+			// Some Gemini OAuth responses can end with STOP but include only an empty
+			// text part. Surface the raw response payload as a normal text chunk here
+			// so this case is handled explicitly rather than by the generic fallback.
+			if (!hasContent && finishReason === "STOP" && data) {
+				hasContent = true
+				yield { type: "text", text: data }
+			}
+
 			if (pendingGroundingMetadata) {
 				const sources = this.extractGroundingSources(pendingGroundingMetadata)
 				if (sources.length > 0) {
@@ -439,10 +447,6 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 			}
 
 			throw error
-		}
-
-		if (!hasContent) {
-			yield { type: "text", text: data }
 		}
 	}
 
