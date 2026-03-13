@@ -1,6 +1,7 @@
 export * from "./anthropic.js"
 export * from "./baseten.js"
 export * from "./bedrock.js"
+export * from "./claude-code.js"
 export * from "./deepseek.js"
 export * from "./fireworks.js"
 export * from "./gemini.js"
@@ -29,6 +30,7 @@ export * from "./minimax.js"
 import { anthropicDefaultModelId } from "./anthropic.js"
 import { basetenDefaultModelId } from "./baseten.js"
 import { bedrockDefaultModelId } from "./bedrock.js"
+import { claudeCodeDefaultModelId } from "./claude-code.js"
 import { deepSeekDefaultModelId } from "./deepseek.js"
 import { fireworksDefaultModelId } from "./fireworks.js"
 import { geminiDefaultModelId } from "./gemini.js"
@@ -103,6 +105,8 @@ export function getProviderDefaultModelId(
 			return "" // LMStudio uses dynamic model selection
 		case "vscode-lm":
 			return vscodeLlmDefaultModelId
+		case "claude-code":
+			return claudeCodeDefaultModelId
 		case "sambanova":
 			return sambaNovaDefaultModelId
 		case "fireworks":

@@ -17,6 +17,8 @@ import {
 	xaiModels,
 	vscodeLlmModels,
 	vscodeLlmDefaultModelId,
+	claudeCodeModels,
+	normalizeClaudeCodeModelId,
 	openAiCodexModels,
 	geminiOauthModels,
 	sambaNovaModels,
@@ -302,6 +304,14 @@ function getSelectedModel({
 			const modelFamily = apiConfiguration?.vsCodeLmModelSelector?.family ?? vscodeLlmDefaultModelId
 			const info = vscodeLlmModels[modelFamily as keyof typeof vscodeLlmModels]
 			return { id, info: { ...openAiModelInfoSaneDefaults, ...info, supportsImages: false } } // VSCode LM API currently doesn't support images.
+		}
+		case "claude-code": {
+			// Claude Code models extend anthropic models but with images and prompt caching disabled
+			// Normalize legacy model IDs to current canonical model IDs for backward compatibility
+			const rawId = apiConfiguration.apiModelId ?? defaultModelId
+			const normalizedId = normalizeClaudeCodeModelId(rawId)
+			const info = claudeCodeModels[normalizedId]
+			return { id: normalizedId, info: { ...openAiModelInfoSaneDefaults, ...info } }
 		}
 		case "gemini-oauth": {
 			const id = apiConfiguration.apiModelId ?? defaultModelId
