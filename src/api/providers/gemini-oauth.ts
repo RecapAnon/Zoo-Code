@@ -59,7 +59,9 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 		const projectId = this.options.geminiOauthProjectId
 		if (!projectId) {
 			throw new Error(
-				t("common:errors.geminiOauth.missingProjectId"),
+				t("common:errors.geminiOauth.missingProjectId", {
+					defaultValue: "Gemini OAuth credentials missing project_id; set geminiOauthProjectId.",
+				}),
 			)
 		}
 		return projectId
@@ -447,6 +449,10 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 			}
 
 			throw error
+		}
+
+		if (!hasContent) {
+			yield { type: "text", text: t("common:errors.gemini.thinking_complete_no_output") }
 		}
 	}
 
