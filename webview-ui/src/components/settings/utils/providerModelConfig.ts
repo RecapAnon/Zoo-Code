@@ -26,6 +26,7 @@ import {
 	vercelAiGatewayDefaultModelId,
 	opencodeGoDefaultModelId,
 	zooGatewayDefaultModelId,
+	claudeCodeDefaultModelId,
 } from "@roo-code/types"
 
 import { MODELS_BY_PROVIDER } from "../constants"
@@ -107,6 +108,7 @@ const PROVIDER_MODEL_CONFIG: Partial<Record<ProviderName, ProviderModelConfig>> 
 	unbound: { field: "unboundModelId", default: unboundDefaultModelId },
 	litellm: { field: "litellmModelId", default: litellmDefaultModelId },
 	anthropic: { field: "apiModelId", default: anthropicDefaultModelId },
+	"claude-code": { field: "apiModelId", default: claudeCodeDefaultModelId },
 	"openai-codex": { field: "apiModelId", default: openAiCodexDefaultModelId },
 	"qwen-code": { field: "apiModelId", default: qwenCodeDefaultModelId },
 	"openai-native": { field: "apiModelId", default: openAiNativeDefaultModelId },
@@ -193,6 +195,7 @@ export const PROVIDERS_WITH_CUSTOM_MODEL_UI: ProviderName[] = [
 	"openrouter",
 	"requesty",
 	"unbound",
+	"claude-code",
 	"openai", // OpenAI Compatible
 	"openai-codex", // OpenAI Codex has custom UI with auth and rate limits
 	"litellm",

@@ -50,6 +50,7 @@ import {
 	Anthropic,
 	Baseten,
 	Bedrock,
+	ClaudeCode,
 	DeepSeek,
 	Gemini,
 	LMStudio,
@@ -114,7 +115,8 @@ const ApiOptions = ({
 	setErrorMessage,
 }: ApiOptionsProps) => {
 	const { t } = useAppTranslation()
-	const { organizationAllowList, openAiCodexIsAuthenticated } = useExtensionState()
+	const { organizationAllowList, claudeCodeIsAuthenticated, openAiCodexIsAuthenticated } =
+		useExtensionState()
 
 	const [customHeaders, setCustomHeaders] = useState<[string, string][]>(() => {
 		const headers = apiConfiguration?.openAiHeaders || {}
@@ -468,12 +470,21 @@ const ApiOptions = ({
 						/>
 					)}
 
-					{selectedProvider === "openai-codex" && (
-						<OpenAICodex
+					{selectedProvider === "claude-code" && (
+						<ClaudeCode
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
 							simplifySettings={fromWelcomeView}
-							openAiCodexIsAuthenticated={openAiCodexIsAuthenticated}
+							claudeCodeIsAuthenticated={claudeCodeIsAuthenticated}
+						/>
+					)}
+
+					{selectedProvider === "claude-code" && (
+						<ClaudeCode
+							apiConfiguration={apiConfiguration}
+							setApiConfigurationField={setApiConfigurationField}
+							simplifySettings={fromWelcomeView}
+							claudeCodeIsAuthenticated={claudeCodeIsAuthenticated}
 						/>
 					)}
 

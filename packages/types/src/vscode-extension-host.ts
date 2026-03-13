@@ -85,6 +85,7 @@ export interface ExtensionMessage {
 		| "dismissedUpsells"
 		| "organizationSwitchResult"
 		| "interactionRequired"
+		| "claudeCodeRateLimits"
 		| "customToolsResult"
 		| "modes"
 		| "taskWithAggregatedCosts"
@@ -385,6 +386,7 @@ export type ExtensionState = Pick<
 	mcpServers?: McpServer[]
 	mdmCompliant?: boolean
 	taskSyncEnabled: boolean
+	claudeCodeIsAuthenticated?: boolean
 	openAiCodexIsAuthenticated?: boolean
 	zooCodeIsAuthenticated?: boolean
 	zooCodeUserName?: string
@@ -530,6 +532,8 @@ export interface WebviewMessage {
 		| "cloudLandingPageSignIn"
 		| "rooCloudSignOut"
 		| "rooCloudManualUrl"
+		| "claudeCodeSignIn"
+		| "claudeCodeSignOut"
 		| "openAiCodexSignIn"
 		| "openAiCodexSignOut"
 		| "zooCodeSignOut"
@@ -578,6 +582,7 @@ export interface WebviewMessage {
 		| "openDebugApiHistory"
 		| "openDebugUiHistory"
 		| "downloadErrorDiagnostics"
+		| "requestClaudeCodeRateLimits"
 		| "requestOpenAiCodexRateLimits"
 		| "refreshCustomTools"
 		| "requestModes"
