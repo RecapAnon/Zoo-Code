@@ -44,6 +44,24 @@ const DATE_SUFFIX_PATTERN = /-\d{8}$/
 // See: https://docs.anthropic.com/en/docs/claude-code
 // NOTE: Claude Code is subscription-based with no per-token cost - pricing fields are 0
 export const claudeCodeModels = {
+	"claude-sonnet-4-6": {
+		maxTokens: 64_000, // Overridden to 8k if `enableReasoningEffort` is false.
+		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag 'context-1m-2025-08-07'
+		supportsImages: true,
+		supportsPromptCache: true,
+		supportsReasoningEffort: ["disable", "low", "medium", "high"],
+		reasoningEffort: "medium",
+		description: "Claude Sonnet 4.6 - Balanced performance with thinking",
+	},
+	"claude-opus-4-6": {
+		maxTokens: 128_000, // Overridden to 8k if `enableReasoningEffort` is false.
+		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag
+		supportsImages: true,
+		supportsPromptCache: true,
+		supportsReasoningEffort: ["disable", "low", "medium", "high"],
+		reasoningEffort: "medium",
+		description: "Claude Opus 4.6 - Most capable with thinking",
+	},
 	"claude-haiku-4-5": {
 		maxTokens: 32768,
 		contextWindow: 200_000,
