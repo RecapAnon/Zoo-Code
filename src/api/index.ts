@@ -9,6 +9,7 @@ import {
 	AnthropicHandler,
 	AwsBedrockHandler,
 	OpenRouterHandler,
+	PoeHandler,
 	VertexHandler,
 	AnthropicVertexHandler,
 	OpenAiHandler,
@@ -182,6 +183,8 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			return new MiniMaxHandler(options)
 		case "baseten":
 			return new BasetenHandler(options)
+		case "poe":
+			return new PoeHandler(options)
 		default:
 			return new AnthropicHandler(options)
 	}
