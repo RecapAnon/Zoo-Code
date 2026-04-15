@@ -188,8 +188,15 @@ export const SYSTEM_PROMPT = async (
 			},
 		)
 
+		const [modesSection, skillsSection] = await Promise.all([
+			getModesSection(context),
+			getSkillsSection(skillsManager, mode as string),
+		])
+
 		// For file-based prompts, don't include the tool sections
 		return `${roleDefinition}
+		
+${skillsSection ? `\n${skillsSection}` : ""}
 
 ${fileCustomSystemPrompt}
 
