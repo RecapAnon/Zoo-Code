@@ -40,14 +40,8 @@ export async function getSkillsSection(
 
 	return `====
 
-AVAILABLE SKILLS
-
-<available_skills>
+## Available Skills:
 ${skillsXml}
-</available_skills>
-
-<mandatory_skill_check>
-REQUIRED PRECONDITION
 
 Before producing ANY user-facing response, you MUST perform a skill applicability check.
 
@@ -71,35 +65,9 @@ Step 2: Branching Decision
 - Do NOT load any SKILL.md files.
 </if_no_skill_applies>
 
-CONSTRAINTS:
-- Do NOT load every skill up front.
-- Load skills ONLY after a skill is selected.
-- Do NOT reload a skill whose instructions already appear in this conversation.
-- Do NOT skip this check.
-- FAILURE to perform this check is an error.
-</mandatory_skill_check>
-
-<linked_file_handling>
+### Linked File Handling:
 - When a skill is loaded, ONLY the skill instructions are present.
 - Files linked from the skill are NOT loaded automatically.
 - The model MUST explicitly decide to read a linked file based on task relevance.
-- Do NOT assume the contents of linked files unless they have been explicitly read.
-- Prefer reading the minimum necessary linked file.
-- Avoid reading multiple linked files unless required.
-- Treat linked files as progressive disclosure, not mandatory context.
-</linked_file_handling>
-
-<context_notes>
-- The skill list is already filtered for the current mode: "${currentMode}".
-- Mode-specific skills may come from skills-${currentMode}/ with project-level overrides taking precedence over global skills.
-</context_notes>
-
-<internal_verification>
-This section is for internal control only.
-Do NOT include this section in user-facing output.
-
-After completing the evaluation, internally confirm:
-<skill_check_completed>true|false</skill_check_completed>
-</internal_verification>
 `
 }
