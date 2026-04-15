@@ -58,11 +58,7 @@ export class GeminiOAuthHandler extends BaseProvider implements SingleCompletion
 	private getProjectId(): string {
 		const projectId = this.options.geminiOauthProjectId
 		if (!projectId) {
-			throw new Error(
-				t("common:errors.geminiOauth.missingProjectId", {
-					defaultValue: "Gemini OAuth credentials missing project_id; set geminiOauthProjectId.",
-				}),
-			)
+			throw new Error(t("common:errors.geminiOauth.missingProjectId"))
 		}
 		return projectId
 	}
