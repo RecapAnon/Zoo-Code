@@ -18,6 +18,28 @@ import { ApiStream, ApiStreamUsageChunk } from "../transform/stream"
 import { DEFAULT_HEADERS } from "./constants"
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
+import { getApiRequestTimeout } from "./utils/timeout-config"
+
+/**
+ * Creates a fetch wrapper that applies a timeout via AbortSignal.
+ * If no timeout is configured (undefined), returns undefined so the
+ * default fetch behavior is used.
+ */
+function createFetchWithTimeout(): typeof globalThis.fetch | undefined {
+	const timeoutMs = getApiRequestTimeout()
+
+	if (timeoutMs === undefined) {
+		return undefined
+	}
+
+	return (input: RequestInfo | URL, init?: RequestInit) => {
+		const timeoutSignal = AbortSignal.timeout(timeoutMs)
+		// Combine with any existing signal to preserve cancellation support
+		const existingSignal = init?.signal
+		const signal = existingSignal ? AbortSignal.any([existingSignal, timeoutSignal]) : timeoutSignal
+		return globalThis.fetch(input, { ...init, signal })
+	}
+}
 
 /**
  * Configuration options for creating an OpenAI-compatible provider.
@@ -58,6 +80,7 @@ export abstract class OpenAICompatibleHandler extends BaseProvider implements Si
 		this.config = config
 
 		// Create the OpenAI-compatible provider using AI SDK
+		const fetchWithTimeout = createFetchWithTimeout()
 		this.provider = createOpenAICompatible({
 			name: config.providerName,
 			baseURL: config.baseURL,
@@ -66,6 +89,7 @@ export abstract class OpenAICompatibleHandler extends BaseProvider implements Si
 				...DEFAULT_HEADERS,
 				...(config.headers || {}),
 			},
+			...(fetchWithTimeout ? { fetch: fetchWithTimeout } : {}),
 		})
 	}
 
