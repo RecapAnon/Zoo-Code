@@ -480,12 +480,12 @@ const ApiOptions = ({
 						/>
 					)}
 
-					{selectedProvider === "claude-code" && (
-						<ClaudeCode
+					{selectedProvider === "openai-codex" && (
+						<OpenAICodex
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
 							simplifySettings={fromWelcomeView}
-							claudeCodeIsAuthenticated={claudeCodeIsAuthenticated}
+							openAiCodexIsAuthenticated={openAiCodexIsAuthenticated}
 						/>
 					)}
 
