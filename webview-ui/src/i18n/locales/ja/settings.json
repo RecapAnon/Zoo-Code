@@ -581,9 +581,48 @@
 			"maxTokensLabel": "最大出力トークン",
 			"maxTokensDescription": "Claude Codeレスポンスの最大出力トークン数。デフォルトは8000です。"
 		},
-		"openAiStrictToolMessageOrdering": {
-			"label": "厳格なツールメッセージの順序",
-			"description": "NVIDIA NIMやDevstralなど、厳格なメッセージ順序を必要とするプロバイダーで有効にします。有効にすると、ツール結果の後のテキストコンテンツは、別のユーザーメッセージを作成する代わりに、最後のツールメッセージにマージされます。"
+		"geminiCli": {
+			"description": "このプロバイダーはGemini CLIツールからのOAuth認証を使用し、APIキーは必要ありません。",
+			"oauthPath": "OAuth認証情報パス（オプション）",
+			"oauthPathDescription": "OAuth認証情報ファイルへのパス。デフォルトの場所（~/.gemini/oauth_creds.json）を使用する場合は空のままにしてください。",
+			"instructions": "まだ認証していない場合は、まず",
+			"instructionsContinued": "をターミナルで実行してください。",
+			"setupLink": "Gemini CLI セットアップ手順",
+			"requirementsTitle": "重要な要件",
+			"requirement1": "まず、Gemini CLIツールをインストールする必要があります",
+			"requirement2": "次に、ターミナルでgeminiを実行し、Googleでログインすることを確認してください",
+			"requirement3": "個人のGoogleアカウントでのみ動作します（Google Workspaceアカウントは不可）",
+			"requirement4": "APIキーは使用しません - 認証はOAuthで処理されます",
+			"requirement5": "Gemini CLIツールが最初にインストールされ、認証されている必要があります",
+			"freeAccess": "OAuth認証による無料アクセス"
+		}
+	},
+	"browser": {
+		"enable": {
+			"label": "ブラウザツールを有効化",
+			"description": "有効にすると、コンピューター使用をサポートするモデルを使用する際に、Rooはウェブサイトとのやり取りにブラウザを使用できます。 <0>詳細情報</0>"
+		},
+		"viewport": {
+			"label": "ビューポートサイズ",
+			"description": "ブラウザインタラクションのビューポートサイズを選択します。これはウェブサイトの表示方法とインタラクション方法に影響します。",
+			"options": {
+				"largeDesktop": "大型デスクトップ (1280x800)",
+				"smallDesktop": "小型デスクトップ (900x600)",
+				"tablet": "タブレット (768x1024)",
+				"mobile": "モバイル (360x640)"
+			}
+		},
+		"screenshotQuality": {
+			"label": "スクリーンショット品質",
+			"description": "ブラウザスクリーンショットのWebP品質を調整します。高い値はより鮮明なスクリーンショットを提供しますが、token使用量が増加します。"
+		},
+		"remote": {
+			"label": "リモートブラウザ接続を使用",
+			"description": "リモートデバッグを有効にして実行しているChromeブラウザに接続します（--remote-debugging-port=9222）。",
+			"urlPlaceholder": "カスタムURL（例：http://localhost:9222）",
+			"testButton": "接続テスト",
+			"testingButton": "テスト中...",
+			"instructions": "DevToolsプロトコルホストアドレスを入力するか、Chromeのローカルインスタンスを自動検出するために空のままにします。接続テストボタンは、提供されている場合はカスタムURLを試み、フィールドが空の場合は自動検出します。"
 		},
 		"zooGateway": {
 			"account": "Zoo Code アカウント",

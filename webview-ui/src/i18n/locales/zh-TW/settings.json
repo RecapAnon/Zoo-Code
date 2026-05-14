@@ -603,10 +603,41 @@
 		"setReasoningLevel": "啟用推理強度",
 		"claudeCode": {
 			"pathLabel": "Claude Code 路徑",
-			"description": "選用的 Claude Code CLI 路徑。若未設定，預設為 'claude'。",
+			"description": "可選的 Claude Code CLI 路徑。如果未設定，則預設為 'claude'。",
 			"placeholder": "預設：claude",
 			"maxTokensLabel": "最大輸出 Token",
 			"maxTokensDescription": "Claude Code 回應的最大輸出 Token 數量。預設為 8000。"
+		},
+		"geminiCli": {
+			"description": "此提供商使用 Gemini CLI 工具的 OAuth 身份驗證，不需要 API 金鑰。",
+			"oauthPath": "OAuth 憑證路徑（可選）",
+			"oauthPathDescription": "OAuth 憑證檔案的路徑。留空以使用預設位置（~/.gemini/oauth_creds.json）。",
+			"instructions": "如果您尚未進行身份驗證，請先執行",
+			"instructionsContinued": "在您的終端機中。",
+			"setupLink": "Gemini CLI 設定說明",
+			"requirementsTitle": "重要要求",
+			"requirement1": "首先，您需要安裝 Gemini CLI 工具",
+			"requirement2": "然後，在終端機中執行 gemini 並確保使用 Google 登入",
+			"requirement3": "僅適用於個人 Google 帳戶（不支援 Google Workspace 帳戶）",
+			"requirement4": "不使用 API 金鑰 - 身份驗證透過 OAuth 處理",
+			"requirement5": "需要先安裝並驗證 Gemini CLI 工具",
+			"freeAccess": "透過 OAuth 身份驗證免費存取"
+		}
+	},
+	"browser": {
+		"enable": {
+			"label": "啟用瀏覽器工具",
+			"description": "啟用後，Roo 可在使用支援電腦使用的模型時使用瀏覽器與網站互動。 <0>瞭解更多</0>"
+		},
+		"viewport": {
+			"label": "視窗大小",
+			"description": "選擇瀏覽器互動的視窗大小。這會影響網站的顯示方式和互動方式。",
+			"options": {
+				"largeDesktop": "大型桌面 (1280x800)",
+				"smallDesktop": "小型桌面 (900x600)",
+				"tablet": "平板 (768x1024)",
+				"mobile": "行動裝置 (360x640)"
+			}
 		},
 		"openAiStrictToolMessageOrdering": {
 			"label": "嚴格的工具訊息順序",

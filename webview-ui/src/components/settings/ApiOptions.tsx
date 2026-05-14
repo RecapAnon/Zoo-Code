@@ -53,6 +53,7 @@ import {
 	ClaudeCode,
 	DeepSeek,
 	Gemini,
+	GeminiCli,
 	LMStudio,
 	LiteLLM,
 	Mistral,
@@ -534,6 +535,10 @@ const ApiOptions = ({
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
 						/>
+					)}
+
+					{selectedProvider === "gemini-cli" && (
+						<GeminiCli apiConfiguration={apiConfiguration} setApiConfigurationField={setApiConfigurationField} />
 					)}
 
 					{selectedProvider === "openai" && (

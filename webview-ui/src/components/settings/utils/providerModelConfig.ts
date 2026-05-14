@@ -27,6 +27,7 @@ import {
 	opencodeGoDefaultModelId,
 	zooGatewayDefaultModelId,
 	claudeCodeDefaultModelId,
+	geminiCliDefaultModelId,
 } from "@roo-code/types"
 
 import { MODELS_BY_PROVIDER } from "../constants"
@@ -113,6 +114,7 @@ const PROVIDER_MODEL_CONFIG: Partial<Record<ProviderName, ProviderModelConfig>> 
 	"qwen-code": { field: "apiModelId", default: qwenCodeDefaultModelId },
 	"openai-native": { field: "apiModelId", default: openAiNativeDefaultModelId },
 	gemini: { field: "apiModelId", default: geminiDefaultModelId },
+	"gemini-cli": { field: "apiModelId", default: geminiCliDefaultModelId },
 	deepseek: { field: "apiModelId", default: deepSeekDefaultModelId },
 	moonshot: { field: "apiModelId", default: moonshotDefaultModelId },
 	minimax: { field: "apiModelId", default: minimaxDefaultModelId },

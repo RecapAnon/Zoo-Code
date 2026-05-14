@@ -142,6 +142,16 @@
 			"unexpectedStreamError": "Unexpected error processing response stream",
 			"completionError": "OpenAI Codex completion error: {{message}}"
 		},
+		"geminiCli": {
+			"oauthLoadFailed": "Error al cargar credenciales OAuth. Por favor autentícate primero: {{error}}",
+			"tokenRefreshFailed": "Error al actualizar token OAuth: {{error}}",
+			"onboardingTimeout": "La operación de incorporación expiró después de 60 segundos. Inténtalo de nuevo más tarde.",
+			"projectDiscoveryFailed": "No se pudo descubrir el ID del proyecto. Asegúrate de estar autenticado con 'gemini auth'.",
+			"rateLimitExceeded": "Límite de velocidad excedido. Se han alcanzado los límites del nivel gratuito.",
+			"badRequest": "Solicitud incorrecta: {{details}}",
+			"apiError": "Error de API de Gemini CLI: {{error}}",
+			"completionError": "Error de completado de Gemini CLI: {{error}}"
+		},
 		"rooHistoryImport": "Error al importar el historial de Roo Code: {{error}}"
 	},
 	"warnings": {

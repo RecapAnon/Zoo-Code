@@ -581,9 +581,48 @@
 			"maxTokensLabel": "Maksymalna liczba tokenów wyjściowych",
 			"maxTokensDescription": "Maksymalna liczba tokenów wyjściowych dla odpowiedzi Claude Code. Domyślnie 8000."
 		},
-		"openAiStrictToolMessageOrdering": {
-			"label": "Ścisła kolejność wiadomości narzędzi",
-			"description": "Włącz dla dostawców takich jak NVIDIA NIM i Devstral, którzy wymagają ścisłej kolejności wiadomości. Po włączeniu treść tekstowa po wynikach narzędzi jest scalana z ostatnią wiadomością narzędzia zamiast tworzenia oddzielnej wiadomości użytkownika."
+		"geminiCli": {
+			"description": "Ten dostawca używa uwierzytelniania OAuth z narzędzia Gemini CLI i nie wymaga kluczy API.",
+			"oauthPath": "Ścieżka danych uwierzytelniających OAuth (opcjonalne)",
+			"oauthPathDescription": "Ścieżka do pliku danych uwierzytelniających OAuth. Pozostaw puste, aby użyć domyślnej lokalizacji (~/.gemini/oauth_creds.json).",
+			"instructions": "Jeśli jeszcze się nie uwierzytelniłeś, uruchom najpierw",
+			"instructionsContinued": "w swoim terminalu.",
+			"setupLink": "Instrukcje konfiguracji Gemini CLI",
+			"requirementsTitle": "Ważne wymagania",
+			"requirement1": "Najpierw musisz zainstalować narzędzie Gemini CLI",
+			"requirement2": "Następnie uruchom gemini w swoim terminalu i upewnij się, że logujesz się przez Google",
+			"requirement3": "Działa tylko z osobistymi kontami Google (nie z kontami Google Workspace)",
+			"requirement4": "Nie używa kluczy API - uwierzytelnianie jest obsługiwane przez OAuth",
+			"requirement5": "Wymaga, aby narzędzie Gemini CLI było najpierw zainstalowane i uwierzytelnione",
+			"freeAccess": "Darmowy dostęp przez uwierzytelnianie OAuth"
+		}
+	},
+	"browser": {
+		"enable": {
+			"label": "Włącz narzędzie przeglądarki",
+			"description": "Gdy włączone, Roo może używać przeglądarki do interakcji ze stronami internetowymi podczas korzystania z modeli obsługujących używanie komputera. <0>Dowiedz się więcej</0>"
+		},
+		"viewport": {
+			"label": "Rozmiar viewportu",
+			"description": "Wybierz rozmiar viewportu dla interakcji przeglądarki. Wpływa to na sposób wyświetlania stron internetowych i interakcji z nimi.",
+			"options": {
+				"largeDesktop": "Duży pulpit (1280x800)",
+				"smallDesktop": "Mały pulpit (900x600)",
+				"tablet": "Tablet (768x1024)",
+				"mobile": "Telefon (360x640)"
+			}
+		},
+		"screenshotQuality": {
+			"label": "Jakość zrzutów ekranu",
+			"description": "Dostosuj jakość WebP zrzutów ekranu przeglądarki. Wyższe wartości zapewniają wyraźniejsze zrzuty ekranu, ale zwiększają zużycie token."
+		},
+		"remote": {
+			"label": "Użyj zdalnego połączenia przeglądarki",
+			"description": "Połącz się z przeglądarką Chrome uruchomioną z włączonym zdalnym debugowaniem (--remote-debugging-port=9222).",
+			"urlPlaceholder": "Niestandardowy URL (np. http://localhost:9222)",
+			"testButton": "Testuj połączenie",
+			"testingButton": "Testowanie...",
+			"instructions": "Wprowadź adres hosta protokołu DevTools lub pozostaw puste, aby automatycznie wykryć lokalne instancje Chrome. Przycisk Test Połączenia spróbuje użyć niestandardowego URL, jeśli podany, lub automatycznie wykryje, jeśli pole jest puste."
 		},
 		"zooGateway": {
 			"account": "Konto Zoo Code",

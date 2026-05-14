@@ -581,9 +581,48 @@
 			"maxTokensLabel": "Token di output massimi",
 			"maxTokensDescription": "Numero massimo di token di output per le risposte di Claude Code. Il valore predefinito è 8000."
 		},
-		"openAiStrictToolMessageOrdering": {
-			"label": "Ordinamento rigoroso dei messaggi degli strumenti",
-			"description": "Abilita per provider come NVIDIA NIM e Devstral che richiedono un ordinamento rigoroso dei messaggi. Quando abilitato, il contenuto testuale dopo i risultati degli strumenti viene unito nell'ultimo messaggio dello strumento invece di creare un messaggio utente separato."
+		"geminiCli": {
+			"description": "Questo provider utilizza l'autenticazione OAuth dallo strumento Gemini CLI e non richiede chiavi API.",
+			"oauthPath": "Percorso Credenziali OAuth (opzionale)",
+			"oauthPathDescription": "Percorso al file delle credenziali OAuth. Lascia vuoto per utilizzare la posizione predefinita (~/.gemini/oauth_creds.json).",
+			"instructions": "Se non ti sei ancora autenticato, esegui",
+			"instructionsContinued": "nel tuo terminale prima.",
+			"setupLink": "Istruzioni di Configurazione Gemini CLI",
+			"requirementsTitle": "Requisiti Importanti",
+			"requirement1": "Prima, devi installare lo strumento Gemini CLI",
+			"requirement2": "Poi, esegui gemini nel tuo terminale e assicurati di accedere con Google",
+			"requirement3": "Funziona solo con account Google personali (non account Google Workspace)",
+			"requirement4": "Non utilizza chiavi API - l'autenticazione è gestita tramite OAuth",
+			"requirement5": "Richiede che lo strumento Gemini CLI sia installato e autenticato prima",
+			"freeAccess": "Accesso gratuito tramite autenticazione OAuth"
+		}
+	},
+	"browser": {
+		"enable": {
+			"label": "Abilita strumento browser",
+			"description": "Quando abilitato, Roo può utilizzare un browser per interagire con siti web quando si utilizzano modelli che supportano l'uso del computer. <0>Scopri di più</0>"
+		},
+		"viewport": {
+			"label": "Dimensione viewport",
+			"description": "Seleziona la dimensione del viewport per le interazioni del browser. Questo influisce su come i siti web vengono visualizzati e su come vi si interagisce.",
+			"options": {
+				"largeDesktop": "Desktop grande (1280x800)",
+				"smallDesktop": "Desktop piccolo (900x600)",
+				"tablet": "Tablet (768x1024)",
+				"mobile": "Mobile (360x640)"
+			}
+		},
+		"screenshotQuality": {
+			"label": "Qualità screenshot",
+			"description": "Regola la qualità WebP degli screenshot del browser. Valori più alti forniscono screenshot più nitidi ma aumentano l'utilizzo di token."
+		},
+		"remote": {
+			"label": "Usa connessione browser remoto",
+			"description": "Connettiti a un browser Chrome in esecuzione con debug remoto abilitato (--remote-debugging-port=9222).",
+			"urlPlaceholder": "URL personalizzato (es. http://localhost:9222)",
+			"testButton": "Testa connessione",
+			"testingButton": "Test in corso...",
+			"instructions": "Inserisci l'indirizzo host del protocollo DevTools o lascia vuoto per scoprire automaticamente le istanze Chrome locali. Il pulsante Test Connessione proverà l'URL personalizzato se fornito, o scoprirà automaticamente se il campo è vuoto."
 		},
 		"zooGateway": {
 			"account": "Account Zoo Code",

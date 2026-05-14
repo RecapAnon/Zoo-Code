@@ -581,6 +581,37 @@
 			"maxTokensLabel": "最大输出 Token",
 			"maxTokensDescription": "Claude Code 响应的最大输出 Token 数量。默认为 8000。"
 		},
+		"geminiCli": {
+			"description": "此提供商使用 Gemini CLI 工具的 OAuth 身份验证，不需要 API 密钥。",
+			"oauthPath": "OAuth 凭据路径（可选）",
+			"oauthPathDescription": "OAuth 凭据文件的路径。留空以使用默认位置（~/.gemini/oauth_creds.json）。",
+			"instructions": "如果您尚未进行身份验证，请先运行",
+			"instructionsContinued": "在您的终端中。",
+			"setupLink": "Gemini CLI 设置说明",
+			"requirementsTitle": "重要要求",
+			"requirement1": "首先，您需要安装 Gemini CLI 工具",
+			"requirement2": "然后，在终端中运行 gemini 并确保使用 Google 登录",
+			"requirement3": "仅适用于个人 Google 账户（不支持 Google Workspace 账户）",
+			"requirement4": "不使用 API 密钥 - 身份验证通过 OAuth 处理",
+			"requirement5": "需要先安装并验证 Gemini CLI 工具",
+			"freeAccess": "通过 OAuth 身份验证免费访问"
+		}
+	},
+	"browser": {
+		"enable": {
+			"label": "启用浏览器工具",
+			"description": "启用后，若模型支持计算机功能调用，Roo 可以使用浏览器与网站交互。 <0>了解更多</0>"
+		},
+		"viewport": {
+			"label": "视口大小",
+			"description": "选择浏览器交互的视口大小。这会影响网站的显示方式和交互方式。",
+			"options": {
+				"largeDesktop": "大桌面 (1280x800)",
+				"smallDesktop": "小桌面 (900x600)",
+				"tablet": "平板 (768x1024)",
+				"mobile": "移动设备 (360x640)"
+			}
+		},
 		"openAiStrictToolMessageOrdering": {
 			"label": "严格的工具消息顺序",
 			"description": "为NVIDIA NIM和Devstral等需要严格消息顺序的提供商启用。启用后，工具结果后的文本内容会合并到最后一个工具消息中，而不是创建单独的用户消息。"

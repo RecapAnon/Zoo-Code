@@ -585,6 +585,49 @@
 			"maxTokensLabel": "Tokens máximos de salida",
 			"maxTokensDescription": "Número máximo de tokens de salida para las respuestas de Claude Code. El valor predeterminado es 8000."
 		},
+		"geminiCli": {
+			"description": "Este proveedor usa autenticación OAuth de la herramienta Gemini CLI y no requiere claves API.",
+			"oauthPath": "Ruta de Credenciales OAuth (opcional)",
+			"oauthPathDescription": "Ruta al archivo de credenciales OAuth. Deja vacío para usar la ubicación predeterminada (~/.gemini/oauth_creds.json).",
+			"instructions": "Si aún no te has autenticado, por favor ejecuta",
+			"instructionsContinued": "en tu terminal primero.",
+			"setupLink": "Instrucciones de Configuración de Gemini CLI",
+			"requirementsTitle": "Requisitos Importantes",
+			"requirement1": "Primero, necesitas instalar la herramienta Gemini CLI",
+			"requirement2": "Luego, ejecuta gemini en tu terminal y asegúrate de iniciar sesión con Google",
+			"requirement3": "Solo funciona con cuentas personales de Google (no cuentas de Google Workspace)",
+			"requirement4": "No usa claves API - la autenticación se maneja vía OAuth",
+			"requirement5": "Requiere que la herramienta Gemini CLI esté instalada y autenticada primero",
+			"freeAccess": "Acceso gratuito vía autenticación OAuth"
+		}
+	},
+	"browser": {
+		"enable": {
+			"label": "Habilitar herramienta de navegador",
+			"description": "Cuando está habilitado, Roo puede usar un navegador para interactuar con sitios web cuando se utilizan modelos que admiten el uso del ordenador. <0>Más información</0>"
+		},
+		"viewport": {
+			"label": "Tamaño del viewport",
+			"description": "Seleccione el tamaño del viewport para interacciones del navegador. Esto afecta cómo se muestran e interactúan los sitios web.",
+			"options": {
+				"largeDesktop": "Escritorio grande (1280x800)",
+				"smallDesktop": "Escritorio pequeño (900x600)",
+				"tablet": "Tablet (768x1024)",
+				"mobile": "Móvil (360x640)"
+			}
+		},
+		"screenshotQuality": {
+			"label": "Calidad de capturas de pantalla",
+			"description": "Ajuste la calidad WebP de las capturas de pantalla del navegador. Valores más altos proporcionan capturas más claras pero aumentan el uso de token."
+		},
+		"remote": {
+			"label": "Usar conexión remota del navegador",
+			"description": "Conectarse a un navegador Chrome que se ejecuta con depuración remota habilitada (--remote-debugging-port=9222).",
+			"urlPlaceholder": "URL personalizada (ej. http://localhost:9222)",
+			"testButton": "Probar conexión",
+			"testingButton": "Probando...",
+			"instructions": "Ingrese la dirección del host del protocolo DevTools o déjelo vacío para descubrir automáticamente instancias locales de Chrome. El botón Probar Conexión intentará usar la URL personalizada si se proporciona, o descubrirá automáticamente si el campo está vacío."
+		},
 		"zooGateway": {
 			"account": "Cuenta de Zoo Code",
 			"signInButton": "Iniciar sesión en Zoo Code",
