@@ -3,21 +3,23 @@ import { TtsProviderInterface, TtsVoice, TTS_PRICING } from "../types"
 import { ContextProxy } from "../../../core/config/ContextProxy"
 
 export class GoogleCloudTtsProvider implements TtsProviderInterface {
-	private apiKey: string | undefined
 	private baseUrl = "https://texttospeech.googleapis.com/v1"
 
-	constructor(private contextProxy: ContextProxy) {
-		this.apiKey = this.contextProxy.getValue("googleCloudTtsApiKey" as any)
+	constructor(private contextProxy: ContextProxy) {}
+
+	private getApiKey(): string | undefined {
+		return this.contextProxy.getValue("googleCloudTtsApiKey" as any) as string | undefined
 	}
 
 	async getVoices(): Promise<TtsVoice[]> {
-		if (!this.isConfigured()) {
+		const apiKey = this.getApiKey()
+		if (!apiKey) {
 			return []
 		}
 
 		try {
 			const response = await axios.get(`${this.baseUrl}/voices`, {
-				params: { key: this.apiKey },
+				params: { key: apiKey },
 			})
 
 			return response.data.voices.map((voice: any) => ({
@@ -35,7 +37,8 @@ export class GoogleCloudTtsProvider implements TtsProviderInterface {
 	}
 
 	async synthesizeSpeech(text: string, voiceId: string, speed: number): Promise<Buffer> {
-		if (!this.isConfigured()) {
+		const apiKey = this.getApiKey()
+		if (!apiKey) {
 			throw new Error("Google Cloud TTS is not configured")
 		}
 
@@ -54,7 +57,7 @@ export class GoogleCloudTtsProvider implements TtsProviderInterface {
 					},
 				},
 				{
-					params: { key: this.apiKey },
+					params: { key: apiKey },
 					headers: { "Content-Type": "application/json" },
 				},
 			)
@@ -76,7 +79,7 @@ export class GoogleCloudTtsProvider implements TtsProviderInterface {
 	}
 
 	isConfigured(): boolean {
-		return !!this.apiKey
+		return !!this.getApiKey()
 	}
 
 	/**

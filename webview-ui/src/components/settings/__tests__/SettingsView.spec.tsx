@@ -72,6 +72,19 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 			role="textbox"
 		/>
 	),
+	// Render the toolkit dropdown as a native <select> so tests can drive it
+	// via fireEvent.change. We rely on the `value` prop to support controlled
+	// usage (NotificationSettings.tsx binds to cachedState.ttsProvider).
+	VSCodeDropdown: ({ value, onChange, children, className, "data-testid": dataTestId }: any) => (
+		<select
+			value={value}
+			onChange={(e) => onChange?.({ target: { value: e.target.value } })}
+			className={className}
+			data-testid={dataTestId}>
+			{children}
+		</select>
+	),
+	VSCodeOption: ({ value, children }: any) => <option value={value}>{children}</option>,
 }))
 
 vi.mock("../../../components/common/Tab", () => ({
@@ -577,6 +590,115 @@ describe("SettingsView - Sound Settings", () => {
 				type: "updateSettings",
 				updatedSettings: expect.objectContaining({
 					soundVolume: 0.75,
+				}),
+			}),
+		)
+	})
+
+	// Regression: selecting a TTS provider and entering provider-specific
+	// fields must flow through `cachedState` so the Save payload carries the
+	// values. Previously the provider dropdown only posted an immediate
+	// `ttsProvider` message and the host-side `getState()` did not return the
+	// persisted value, so the saved provider reverted on reopen.
+	it("persists TTS provider selection in the Save payload", () => {
+		const { activateTab, getSettingsContent } = renderSettingsView()
+
+		activateTab("notifications")
+
+		const content = getSettingsContent()
+		// Enable TTS so the provider dropdown is rendered
+		fireEvent.click(within(content).getByTestId("tts-enabled-checkbox"))
+
+		// The provider dropdown is the first <select> rendered inside the TTS
+		// subtree. NotificationSettings only renders one dropdown when no
+		// provider is selected.
+		const providerSelect = within(content).getAllByRole("combobox")[0] as HTMLSelectElement
+		fireEvent.change(providerSelect, { target: { value: "openai" } })
+
+		fireEvent.click(screen.getByTestId("save-button"))
+
+		expect(vscode.postMessage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "updateSettings",
+				updatedSettings: expect.objectContaining({
+					ttsEnabled: true,
+					ttsProvider: "openai",
+				}),
+			}),
+		)
+	})
+
+	it("persists OpenAI TTS provider-specific fields in the Save payload", () => {
+		const { activateTab, getSettingsContent } = renderSettingsView()
+
+		activateTab("notifications")
+
+		const content = getSettingsContent()
+		fireEvent.click(within(content).getByTestId("tts-enabled-checkbox"))
+
+		// Select OpenAI provider
+		const providerSelect = within(content).getAllByRole("combobox")[0] as HTMLSelectElement
+		fireEvent.change(providerSelect, { target: { value: "openai" } })
+
+		// After choosing OpenAI, the provider-specific text fields render.
+		// Locate them by placeholder/label text since they share VSCodeTextField mock.
+		const textInputs = within(content).getAllByRole("textbox") as HTMLInputElement[]
+		// First TTS text field after the dropdown is the API key, then base URL.
+		const apiKeyInput = textInputs.find((el) => el.placeholder === "settings:placeholders.apiKey")!
+		const baseUrlInput = textInputs.find((el) => el.placeholder === "https://api.openai.com/v1")!
+		fireEvent.change(apiKeyInput, { target: { value: "sk-test-openai-tts" } })
+		fireEvent.change(baseUrlInput, { target: { value: "https://custom.example.com/v1" } })
+
+		// Voice dropdown is the second <select> rendered.
+		const voiceSelect = within(content).getAllByRole("combobox")[1] as HTMLSelectElement
+		fireEvent.change(voiceSelect, { target: { value: "nova" } })
+
+		fireEvent.click(screen.getByTestId("save-button"))
+
+		expect(vscode.postMessage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "updateSettings",
+				updatedSettings: expect.objectContaining({
+					ttsEnabled: true,
+					ttsProvider: "openai",
+					openAiTtsApiKey: "sk-test-openai-tts",
+					openAiTtsBaseUrl: "https://custom.example.com/v1",
+					ttsOpenAiVoice: "nova",
+				}),
+			}),
+		)
+	})
+
+	it("persists Azure TTS provider-specific fields in the Save payload", () => {
+		const { activateTab, getSettingsContent } = renderSettingsView()
+
+		activateTab("notifications")
+
+		const content = getSettingsContent()
+		fireEvent.click(within(content).getByTestId("tts-enabled-checkbox"))
+
+		const providerSelect = within(content).getAllByRole("combobox")[0] as HTMLSelectElement
+		fireEvent.change(providerSelect, { target: { value: "azure" } })
+
+		const textInputs = within(content).getAllByRole("textbox") as HTMLInputElement[]
+		const apiKeyInput = textInputs.find((el) => el.placeholder === "settings:placeholders.apiKey")!
+		const regionInput = textInputs.find((el) => el.placeholder === "eastus")!
+		const voiceInput = textInputs.find((el) => el.placeholder === "en-US-JennyNeural")!
+		fireEvent.change(apiKeyInput, { target: { value: "azure-secret" } })
+		fireEvent.change(regionInput, { target: { value: "westus2" } })
+		fireEvent.change(voiceInput, { target: { value: "en-US-AriaNeural" } })
+
+		fireEvent.click(screen.getByTestId("save-button"))
+
+		expect(vscode.postMessage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "updateSettings",
+				updatedSettings: expect.objectContaining({
+					ttsEnabled: true,
+					ttsProvider: "azure",
+					azureTtsApiKey: "azure-secret",
+					azureTtsRegion: "westus2",
+					ttsAzureVoice: "en-US-AriaNeural",
 				}),
 			}),
 		)

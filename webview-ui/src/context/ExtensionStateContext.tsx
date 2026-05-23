@@ -148,15 +148,6 @@ export interface ExtensionStateContextType extends ExtensionState {
 	showWorktreesInHomeScreen: boolean
 	setShowWorktreesInHomeScreen: (value: boolean) => void
 	skills?: SkillMetadata[]
-	openAiTtsApiKey: string
-	azureTtsApiKey: string
-	googleCloudTtsApiKey: string
-	ttsProvider?: "openai" | "default" | "google-cloud" | "azure" | undefined
-	ttsAzureVoice?: string
-	ttsGoogleVoice?: string
-	ttsOpenAiVoice?: string
-	openAiTtsBaseUrl?: string
-	azureTtsRegion: string
 }
 
 export const ExtensionStateContext = createContext<ExtensionStateContextType | undefined>(undefined)
@@ -278,11 +269,6 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		includeCurrentTime: true,
 		includeCurrentCost: true,
 		lockApiConfigAcrossModes: false,
-		openAiTtsApiKey: "",
-		azureTtsApiKey: "",
-		googleCloudTtsApiKey: "",
-		ttsProvider: "default",
-		azureTtsRegion: "",
 	})
 
 	const [didHydrateState, setDidHydrateState] = useState(false)
@@ -305,12 +291,6 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 	const [includeTaskHistoryInEnhance, setIncludeTaskHistoryInEnhance] = useState(true)
 	const [includeCurrentTime, setIncludeCurrentTime] = useState(true)
 	const [includeCurrentCost, setIncludeCurrentCost] = useState(true)
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [openAiTtsApiKey, setOpenAiTtsApiKey] = useState<string | undefined>(undefined)
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [azureTtsApiKey, setAzureTtsApiKey] = useState<string | undefined>(undefined)
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [googleCloudTtsApiKey, setGoogleCloudTtsApiKey] = useState<string | undefined>(undefined)
 
 	const setListApiConfigMeta = useCallback(
 		(value: ProviderSettingsEntry[]) => setState((prevState) => ({ ...prevState, listApiConfigMeta: value })),
@@ -355,15 +335,6 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 					// Update includeCurrentCost if present in state message
 					if ((newState as any).includeCurrentCost !== undefined) {
 						setIncludeCurrentCost((newState as any).includeCurrentCost)
-					}
-					if ((newState as any).openAiTtsApiKey !== undefined) {
-						setOpenAiTtsApiKey((newState as any).openAiTtsApiKey)
-					}
-					if ((newState as any).azureTtsApiKey !== undefined) {
-						setAzureTtsApiKey((newState as any).azureTtsApiKey)
-					}
-					if ((newState as any).googleCloudTtsApiKey !== undefined) {
-						setGoogleCloudTtsApiKey((newState as any).googleCloudTtsApiKey)
 					}
 					// Handle marketplace data if present in state message
 					if (newState.marketplaceItems !== undefined) {
@@ -653,11 +624,6 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		showWorktreesInHomeScreen: state.showWorktreesInHomeScreen ?? true,
 		setShowWorktreesInHomeScreen: (value) =>
 			setState((prevState) => ({ ...prevState, showWorktreesInHomeScreen: value })),
-		openAiTtsApiKey: "",
-		azureTtsApiKey: "",
-		googleCloudTtsApiKey: "",
-		ttsProvider: "default",
-		azureTtsRegion: "",
 	}
 
 	return <ExtensionStateContext.Provider value={contextValue}>{children}</ExtensionStateContext.Provider>

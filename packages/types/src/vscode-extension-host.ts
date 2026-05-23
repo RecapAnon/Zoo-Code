@@ -101,6 +101,9 @@ export interface ExtensionMessage {
 		| "folderSelected"
 		| "skills"
 		| "fileContent"
+		| "ttsVoices"
+		| "ttsUsageStats"
+		| "ttsProviderConfigured"
 		| "rooHistoryImportProgress"
 	text?: string
 	/** For fileContent: { path, content, error? } */
@@ -246,6 +249,21 @@ export interface ExtensionMessage {
 	copyProgressItemName?: string
 	// folderSelected
 	path?: string
+	// TTS response fields
+	voices?: Array<{
+		id: string
+		name: string
+		languageCode: string
+		gender?: string
+		premium?: boolean
+	}>
+	stats?: {
+		provider: string
+		monthlyUsage: { month: string; characters: number }
+		isWithinFreeTier: boolean | Promise<boolean>
+	} | null
+	provider?: string
+	configured?: boolean
 }
 
 export interface OpenAiCodexRateLimitsMessage {

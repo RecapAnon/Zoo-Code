@@ -64,6 +64,35 @@ const ApiConfigTestComponent = () => {
 	)
 }
 
+const TtsSettingsTestComponent = () => {
+	const {
+		ttsProvider,
+		ttsOpenAiVoice,
+		openAiTtsBaseUrl,
+		openAiTtsApiKey,
+		azureTtsApiKey,
+		azureTtsRegion,
+		googleCloudTtsApiKey,
+	} = useExtensionState()
+
+	return (
+		<div>
+			<div data-testid="tts-provider">{JSON.stringify(ttsProvider)}</div>
+			<div data-testid="tts-openai-voice">{JSON.stringify(ttsOpenAiVoice)}</div>
+			<div data-testid="openai-tts-base-url">{JSON.stringify(openAiTtsBaseUrl)}</div>
+			<div data-testid="openai-tts-api-key">{JSON.stringify(openAiTtsApiKey)}</div>
+			<div data-testid="azure-tts-api-key">{JSON.stringify(azureTtsApiKey)}</div>
+			<div data-testid="azure-tts-region">{JSON.stringify(azureTtsRegion)}</div>
+			<div data-testid="google-cloud-tts-api-key">{JSON.stringify(googleCloudTtsApiKey)}</div>
+		</div>
+	)
+}
+
+// Dispatch a "state" message the same way the VS Code extension host does.
+const postStateMessage = (state: Record<string, unknown>) => {
+	window.dispatchEvent(new MessageEvent("message", { data: { type: "state", state } }))
+}
+
 describe("ExtensionStateContext", () => {
 	it("initializes with empty allowedCommands array", () => {
 		render(
@@ -234,6 +263,95 @@ describe("ExtensionStateContext", () => {
 				modelTemperature: 0.7, // Should add this from partial update
 			}),
 		)
+	})
+
+	// Regression tests for the TTS settings persistence bug. The webview previously
+	// hard-coded empty TTS defaults in its contextValue, overriding values pushed
+	// from the extension host. As a result, saved TTS settings (provider, base URL,
+	// API key, etc.) appeared to revert to "OS default" when the user reopened the
+	// notifications panel. These tests verify that TTS fields from the "state"
+	// message flow through to consumers unchanged.
+	describe("TTS settings persistence", () => {
+		it("propagates TTS provider, base URL, and OpenAI API key from a state push", () => {
+			render(
+				<ExtensionStateContextProvider>
+					<TtsSettingsTestComponent />
+				</ExtensionStateContextProvider>,
+			)
+
+			// Before the state push, optional TTS fields render as "" (JSON.stringify(undefined)
+			// returns undefined which React renders as empty text). After the push, they must
+			// reflect the saved values rather than being overwritten by hard-coded defaults.
+			expect(screen.getByTestId("tts-provider").textContent).toBe("")
+			expect(screen.getByTestId("openai-tts-api-key").textContent).toBe("")
+			expect(screen.getByTestId("openai-tts-base-url").textContent).toBe("")
+
+			act(() => {
+				postStateMessage({
+					ttsProvider: "openai",
+					ttsOpenAiVoice: "nova",
+					openAiTtsBaseUrl: "https://custom-openai.example.com/v1",
+					openAiTtsApiKey: "sk-test-openai-tts",
+				})
+			})
+
+			expect(JSON.parse(screen.getByTestId("tts-provider").textContent!)).toBe("openai")
+			expect(JSON.parse(screen.getByTestId("tts-openai-voice").textContent!)).toBe("nova")
+			expect(JSON.parse(screen.getByTestId("openai-tts-base-url").textContent!)).toBe(
+				"https://custom-openai.example.com/v1",
+			)
+			expect(JSON.parse(screen.getByTestId("openai-tts-api-key").textContent!)).toBe("sk-test-openai-tts")
+		})
+
+		it("propagates Azure and Google Cloud TTS credentials from a state push", () => {
+			render(
+				<ExtensionStateContextProvider>
+					<TtsSettingsTestComponent />
+				</ExtensionStateContextProvider>,
+			)
+
+			act(() => {
+				postStateMessage({
+					ttsProvider: "azure",
+					azureTtsApiKey: "azure-secret",
+					azureTtsRegion: "westus2",
+					googleCloudTtsApiKey: "google-secret",
+				})
+			})
+
+			expect(JSON.parse(screen.getByTestId("tts-provider").textContent!)).toBe("azure")
+			expect(JSON.parse(screen.getByTestId("azure-tts-api-key").textContent!)).toBe("azure-secret")
+			expect(JSON.parse(screen.getByTestId("azure-tts-region").textContent!)).toBe("westus2")
+			expect(JSON.parse(screen.getByTestId("google-cloud-tts-api-key").textContent!)).toBe("google-secret")
+		})
+
+		it("preserves the TTS provider across subsequent unrelated state pushes", () => {
+			render(
+				<ExtensionStateContextProvider>
+					<TtsSettingsTestComponent />
+				</ExtensionStateContextProvider>,
+			)
+
+			act(() => {
+				postStateMessage({
+					ttsProvider: "openai",
+					openAiTtsApiKey: "sk-test-openai-tts",
+					openAiTtsBaseUrl: "https://custom-openai.example.com/v1",
+				})
+			})
+
+			// Simulate a later state push that does not re-send the TTS fields
+			// (e.g., a cloud-auth update). Persistence must survive merge.
+			act(() => {
+				postStateMessage({ cloudIsAuthenticated: true })
+			})
+
+			expect(JSON.parse(screen.getByTestId("tts-provider").textContent!)).toBe("openai")
+			expect(JSON.parse(screen.getByTestId("openai-tts-api-key").textContent!)).toBe("sk-test-openai-tts")
+			expect(JSON.parse(screen.getByTestId("openai-tts-base-url").textContent!)).toBe(
+				"https://custom-openai.example.com/v1",
+			)
+		})
 	})
 })
 

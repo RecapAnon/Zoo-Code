@@ -915,6 +915,47 @@ describe("ClineProvider", () => {
 		expect(state).toHaveProperty("writeDelayMs")
 	})
 
+	// Regression: previously `getState()` omitted the TTS provider and
+	// provider-specific fields. Even though `updateSettings` persisted them
+	// to globalState via `ContextProxy.setValue`, the next call to
+	// `getStateToPostToWebview` destructured those keys from `getState()` and
+	// got `undefined`, causing the UI to show the default provider on
+	// reopen. This test guarantees the fields round-trip from globalState
+	// through `getState()` so the webview hydrates the saved values.
+	test("getState round-trips persisted TTS provider settings", async () => {
+		await provider.resolveWebviewView(mockWebviewView)
+		const messageHandler = (mockWebviewView.webview.onDidReceiveMessage as any).mock.calls[0][0]
+
+		await messageHandler({
+			type: "updateSettings",
+			updatedSettings: {
+				ttsEnabled: true,
+				ttsProvider: "openai",
+				ttsOpenAiVoice: "nova",
+				openAiTtsBaseUrl: "https://custom.example.com/v1",
+				openAiTtsApiKey: "sk-test-openai-tts",
+				azureTtsApiKey: "azure-secret",
+				azureTtsRegion: "westus2",
+				ttsAzureVoice: "en-US-AriaNeural",
+				googleCloudTtsApiKey: "google-secret",
+				ttsGoogleVoice: "en-US-Wavenet-D",
+			},
+		})
+
+		const state = await provider.getState()
+
+		expect(state.ttsEnabled).toBe(true)
+		expect(state.ttsProvider).toBe("openai")
+		expect(state.ttsOpenAiVoice).toBe("nova")
+		expect(state.openAiTtsBaseUrl).toBe("https://custom.example.com/v1")
+		expect(state.openAiTtsApiKey).toBe("sk-test-openai-tts")
+		expect(state.azureTtsApiKey).toBe("azure-secret")
+		expect(state.azureTtsRegion).toBe("westus2")
+		expect(state.ttsAzureVoice).toBe("en-US-AriaNeural")
+		expect(state.googleCloudTtsApiKey).toBe("google-secret")
+		expect(state.ttsGoogleVoice).toBe("en-US-Wavenet-D")
+	})
+
 	test("language is set to VSCode language", async () => {
 		// Mock VSCode language as Spanish
 		;(vscode.env as any).language = "pt-BR"

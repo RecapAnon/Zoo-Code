@@ -3,25 +3,30 @@ import { TtsProviderInterface, TtsVoice, TTS_PRICING } from "../types"
 import { ContextProxy } from "../../../core/config/ContextProxy"
 
 export class AzureTtsProvider implements TtsProviderInterface {
-	private apiKey: string | undefined
-	private region: string | undefined
-	private baseUrl: string
+	constructor(private contextProxy: ContextProxy) {}
 
-	constructor(private contextProxy: ContextProxy) {
-		this.apiKey = this.contextProxy.getValue("azureTtsApiKey" as any)
-		this.region = this.contextProxy.getValue("azureTtsRegion" as any) || "eastus"
-		this.baseUrl = `https://${this.region}.tts.speech.microsoft.com/cognitiveservices`
+	private getApiKey(): string | undefined {
+		return this.contextProxy.getValue("azureTtsApiKey" as any) as string | undefined
+	}
+
+	private getRegion(): string {
+		return (this.contextProxy.getValue("azureTtsRegion" as any) as string | undefined) || "eastus"
+	}
+
+	private getBaseUrl(): string {
+		return `https://${this.getRegion()}.tts.speech.microsoft.com/cognitiveservices`
 	}
 
 	async getVoices(): Promise<TtsVoice[]> {
-		if (!this.isConfigured()) {
+		const apiKey = this.getApiKey()
+		if (!apiKey) {
 			return []
 		}
 
 		try {
-			const response = await axios.get(`${this.baseUrl}/voices/list`, {
+			const response = await axios.get(`${this.getBaseUrl()}/voices/list`, {
 				headers: {
-					"Ocp-Apim-Subscription-Key": this.apiKey!,
+					"Ocp-Apim-Subscription-Key": apiKey,
 				},
 			})
 
@@ -39,7 +44,8 @@ export class AzureTtsProvider implements TtsProviderInterface {
 	}
 
 	async synthesizeSpeech(text: string, voiceId: string, speed: number): Promise<Buffer> {
-		if (!this.isConfigured()) {
+		const apiKey = this.getApiKey()
+		if (!apiKey) {
 			throw new Error("Azure TTS is not configured")
 		}
 
@@ -56,9 +62,9 @@ export class AzureTtsProvider implements TtsProviderInterface {
 					</voice>
 				</speak>`
 
-			const response = await axios.post(`${this.baseUrl}/v1`, ssml, {
+			const response = await axios.post(`${this.getBaseUrl()}/v1`, ssml, {
 				headers: {
-					"Ocp-Apim-Subscription-Key": this.apiKey!,
+					"Ocp-Apim-Subscription-Key": apiKey,
 					"Content-Type": "application/ssml+xml",
 					"X-Microsoft-OutputFormat": "audio-16khz-128kbitrate-mono-mp3",
 				},
@@ -80,7 +86,7 @@ export class AzureTtsProvider implements TtsProviderInterface {
 	}
 
 	isConfigured(): boolean {
-		return !!this.apiKey
+		return !!this.getApiKey()
 	}
 
 	/**

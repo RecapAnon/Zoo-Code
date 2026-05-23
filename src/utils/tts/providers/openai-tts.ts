@@ -15,12 +15,17 @@ const OPENAI_VOICES: TtsVoice[] = [
 ]
 
 export class OpenAiTtsProvider implements TtsProviderInterface {
-	private apiKey: string | undefined
-	private baseUrl: string
+	constructor(private contextProxy: ContextProxy) {}
 
-	constructor(private contextProxy: ContextProxy) {
-		this.apiKey = this.contextProxy.getValue("openAiTtsApiKey" as any)
-		this.baseUrl = this.contextProxy.getValue("openAiTtsBaseUrl" as any) || DEFAULT_OPENAI_TTS_BASE_URL
+	private getApiKey(): string | undefined {
+		return this.contextProxy.getValue("openAiTtsApiKey" as any) as string | undefined
+	}
+
+	private getBaseUrl(): string {
+		const configured = this.contextProxy.getValue("openAiTtsBaseUrl" as any) as string | undefined
+		const candidate = configured && configured.trim().length > 0 ? configured : DEFAULT_OPENAI_TTS_BASE_URL
+		// Normalize: strip trailing slash so callers can safely append a path.
+		return candidate.replace(/\/$/, "")
 	}
 
 	async getVoices(): Promise<TtsVoice[]> {
@@ -31,17 +36,18 @@ export class OpenAiTtsProvider implements TtsProviderInterface {
 	}
 
 	async synthesizeSpeech(text: string, voiceId: string, speed: number): Promise<Buffer> {
-		if (!this.isConfigured()) {
+		const apiKey = this.getApiKey()
+		if (!apiKey) {
 			throw new Error("OpenAI TTS is not configured")
 		}
 
-		const trimmedBaseUrl = this.baseUrl.replace(/\/$/, "")
+		const baseUrl = this.getBaseUrl()
 		const voice = voiceId || DEFAULT_OPENAI_VOICE
 		const model = "gpt-4o-mini-tts"
 
 		try {
 			const response = await axios.post(
-				`${trimmedBaseUrl}/audio/speech`,
+				`${baseUrl}/audio/speech`,
 				{
 					model,
 					input: text,
@@ -51,7 +57,7 @@ export class OpenAiTtsProvider implements TtsProviderInterface {
 				},
 				{
 					headers: {
-						Authorization: `Bearer ${this.apiKey}`,
+						Authorization: `Bearer ${apiKey}`,
 						"Content-Type": "application/json",
 					},
 					responseType: "arraybuffer",
@@ -72,7 +78,7 @@ export class OpenAiTtsProvider implements TtsProviderInterface {
 	}
 
 	isConfigured(): boolean {
-		return !!this.apiKey
+		return !!this.getApiKey()
 	}
 
 	async isWithinFreeTier(_charactersUsed: number): Promise<boolean> {
