@@ -1,329 +1,212 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { GeminiCliHandler } from "../gemini-cli"
-import { geminiCliDefaultModelId, geminiCliModels } from "@roo-code/types"
-import * as fs from "fs/promises"
-import axios from "axios"
+import { Anthropic } from "@anthropic-ai/sdk"
 
-vi.mock("fs/promises")
-vi.mock("axios")
-vi.mock("google-auth-library", () => ({
-	OAuth2Client: vi.fn().mockImplementation(() => ({
-		setCredentials: vi.fn(),
-		refreshAccessToken: vi.fn().mockResolvedValue({
-			credentials: {
-				access_token: "refreshed-token",
-				refresh_token: "refresh-token",
-				token_type: "Bearer",
-				expiry_date: Date.now() + 3600 * 1000,
-			},
-		}),
-		request: vi.fn(),
-	})),
+vi.mock("@roo-code/telemetry", () => ({
+	TelemetryService: {
+		instance: {
+			captureException: vi.fn(),
+		},
+	},
 }))
 
+import { GeminiCliHandler } from "../gemini-cli"
+import type { ApiHandlerOptions } from "../../../shared/api"
+import { geminiOAuthManager } from "../../../integrations/gemini-cli/oauth"
+
+vi.mock("../../../integrations/gemini-oauth/oauth", () => ({
+	geminiOAuthManager: {
+		ensureAuthenticated: vi.fn(),
+		getAuthClient: vi.fn(),
+	},
+}))
+
+const mockFetch = vi.fn()
+
+function buildSseStream(lines: string[]) {
+	return new ReadableStream({
+		start(controller) {
+			for (const line of lines) {
+				controller.enqueue(new TextEncoder().encode(`${line}\n`))
+			}
+			controller.close()
+		},
+	})
+}
+
 describe("GeminiCliHandler", () => {
+	const systemPrompt = "You are helpful."
+	const messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: "Hello" }]
 	let handler: GeminiCliHandler
-	const mockCredentials = {
-		access_token: "test-access-token",
-		refresh_token: "test-refresh-token",
-		token_type: "Bearer",
-		expiry_date: Date.now() + 3600 * 1000,
-	}
+	let options: ApiHandlerOptions & { geminiOauthPath?: string; geminiOauthProjectId?: string }
 
 	beforeEach(() => {
 		vi.clearAllMocks()
-		;(fs.readFile as any).mockResolvedValue(JSON.stringify(mockCredentials))
-		;(fs.writeFile as any).mockResolvedValue(undefined)
-
-		// Set up default mock
-		;(axios.post as any).mockResolvedValue({
-			data: {},
+		global.fetch = mockFetch as any
+		;(geminiOAuthManager.ensureAuthenticated as any).mockResolvedValue({
+			access_token: "test-access-token",
+			expiry_date: Date.now() + 3600 * 1000,
 		})
-
-		handler = new GeminiCliHandler({
-			apiModelId: geminiCliDefaultModelId,
+		;(geminiOAuthManager.getAuthClient as any).mockReturnValue({
+			request: mockFetch,
 		})
-
-		// Set up default mock for OAuth2Client request
-		handler["authClient"].request = vi.fn().mockResolvedValue({
-			data: {},
-		})
-
-		// Mock the discoverProjectId to avoid real API calls in tests
-		handler["projectId"] = "test-project-123"
-		vi.spyOn(handler as any, "discoverProjectId").mockResolvedValue("test-project-123")
+		options = {
+			apiModelId: "gemini-2.5-pro",
+			geminiOauthPath: "~/.gemini/oauth_creds.json",
+			geminiOauthProjectId: "test-project",
+		}
+		handler = new GeminiCliHandler(options)
 	})
 
-	describe("constructor", () => {
-		it("should initialize with provided config", () => {
-			expect(handler["options"].apiModelId).toBe(geminiCliDefaultModelId)
-		})
+	afterEach(() => {
+		delete (global as any).fetch
 	})
 
-	describe("getModel", () => {
-		it("should return correct model info", () => {
-			const modelInfo = handler.getModel()
-			expect(modelInfo.id).toBe(geminiCliDefaultModelId)
-			expect(modelInfo.info).toBeDefined()
-			expect(modelInfo.info.inputPrice).toBe(0)
-			expect(modelInfo.info.outputPrice).toBe(0)
+	it("streams via Cloud Code Assist with CLI headers and envelope", async () => {
+		const stream = buildSseStream([
+			'data: {"response":{"candidates":[{"content":{"parts":[{"text":"Hello"}]}}],"usageMetadata":{"promptTokenCount":5,"candidatesTokenCount":2}}}',
+			"data: [DONE]",
+		])
+
+		mockFetch.mockResolvedValue({
+			data: stream,
 		})
 
-		it("should return default model if invalid model specified", () => {
-			const invalidHandler = new GeminiCliHandler({
-				apiModelId: "invalid-model",
-			})
-			const modelInfo = invalidHandler.getModel()
-			expect(modelInfo.id).toBe(geminiCliDefaultModelId)
-		})
+		const iterator = handler.createMessage(systemPrompt, messages)
+		const chunks: any[] = []
+		for await (const chunk of iterator) {
+			chunks.push(chunk)
+		}
 
-		it("should handle :thinking suffix", () => {
-			const thinkingHandler = new GeminiCliHandler({
-				apiModelId: "gemini-2.5-pro:thinking",
-			})
-			const modelInfo = thinkingHandler.getModel()
-			// The :thinking suffix should be removed from the ID
-			expect(modelInfo.id).toBe("gemini-2.5-pro")
-			// But the model should still have reasoning support
-			expect(modelInfo.info.supportsReasoningBudget).toBe(true)
-			expect(modelInfo.info.requiredReasoningBudget).toBe(true)
-		})
+		expect(chunks).toEqual(
+			expect.arrayContaining([
+				{ type: "text", text: "Hello" },
+				expect.objectContaining({ type: "usage", inputTokens: 5, outputTokens: 2 }),
+			]),
+		)
+
+		expect(mockFetch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				url: "https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent",
+				method: "POST",
+				params: { alt: "sse" },
+				headers: expect.objectContaining({
+					Accept: "text/event-stream",
+				}),
+				data: expect.any(String),
+			}),
+		)
+
+		const body = JSON.parse((mockFetch.mock.calls[0][0] as any).data as string)
+		expect(body.project).toBe("test-project")
+		expect(body.model).toBe("gemini-2.5-pro")
+		expect(body.request.systemInstruction.parts[0].text).toBe(systemPrompt)
+		expect(body.request.contents[0].role).toBe("user")
+		expect(body.request.generationConfig.thinkingConfig.include_thoughts).toBe(true)
 	})
 
-	describe("OAuth authentication", () => {
-		it("should load OAuth credentials from default path", async () => {
-			await handler["loadOAuthCredentials"]()
-			expect(fs.readFile).toHaveBeenCalledWith(expect.stringMatching(/\.gemini[/\\]oauth_creds\.json$/), "utf-8")
-		})
+	it("does not emit JSON text fallback for STOP with empty text and still emits usage", async () => {
+		const stream = buildSseStream([
+			'data: {"response":{"candidates":[{"content":{"parts":[{"text":""}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":10,"totalTokenCount":10,"cachedContentTokenCount":4}}}',
+			"data: [DONE]",
+		])
 
-		it("should load OAuth credentials from custom path", async () => {
-			const customHandler = new GeminiCliHandler({
-				apiModelId: geminiCliDefaultModelId,
-				geminiCliOAuthPath: "/custom/path/oauth.json",
-			})
-			await customHandler["loadOAuthCredentials"]()
-			expect(fs.readFile).toHaveBeenCalledWith("/custom/path/oauth.json", "utf-8")
-		})
+		mockFetch.mockResolvedValue({ data: stream })
 
-		it("should refresh expired tokens", async () => {
-			const expiredCredentials = {
-				...mockCredentials,
-				expiry_date: Date.now() - 1000, // Expired
-			}
-			;(fs.readFile as any).mockResolvedValueOnce(JSON.stringify(expiredCredentials))
+		const iterator = handler.createMessage(systemPrompt, messages)
+		const chunks: any[] = []
+		for await (const chunk of iterator) {
+			chunks.push(chunk)
+		}
 
-			await handler["ensureAuthenticated"]()
-
-			expect(handler["authClient"].refreshAccessToken).toHaveBeenCalled()
-			expect(fs.writeFile).toHaveBeenCalledWith(
-				expect.stringMatching(/\.gemini[/\\]oauth_creds\.json$/),
-				expect.stringContaining("refreshed-token"),
-			)
-		})
-
-		it("should throw error if credentials file not found", async () => {
-			;(fs.readFile as any).mockRejectedValueOnce(new Error("ENOENT"))
-
-			await expect(handler["loadOAuthCredentials"]()).rejects.toThrow("errors.geminiCli.oauthLoadFailed")
-		})
+		expect(chunks.some((chunk) => chunk.type === "text")).toBe(false)
+		expect(chunks).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ type: "usage", inputTokens: 10, outputTokens: 0, cacheReadTokens: 4 }),
+				expect.objectContaining({ type: "reasoning" }),
+			]),
+		)
 	})
 
-	describe("project ID discovery", () => {
-		it("should use provided project ID", async () => {
-			const customHandler = new GeminiCliHandler({
-				apiModelId: geminiCliDefaultModelId,
-				geminiCliProjectId: "custom-project",
-			})
-
-			const projectId = await customHandler["discoverProjectId"]()
-			expect(projectId).toBe("custom-project")
-			expect(customHandler["projectId"]).toBe("custom-project")
+	it("uses generateContent for completePrompt", async () => {
+		mockFetch.mockResolvedValue({
+			data: {
+				candidates: [{ content: { parts: [{ text: "Prompt response" }] } }],
+			},
 		})
 
-		it("should discover project ID through API", async () => {
-			// Create a new handler without the mocked discoverProjectId
-			const testHandler = new GeminiCliHandler({
-				apiModelId: geminiCliDefaultModelId,
-			})
-			testHandler["authClient"].request = vi.fn().mockResolvedValue({
-				data: {},
-			})
+		const result = await handler.completePrompt("Hello prompt")
+		expect(result).toBe("Prompt response")
+		expect(mockFetch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				url: "https://cloudcode-pa.googleapis.com/v1internal:generateContent",
+				method: "POST",
+				headers: expect.objectContaining({
+					Accept: "application/json",
+				}),
+				data: expect.any(String),
+			}),
+		)
+	})
 
-			// Mock the callEndpoint method
-			testHandler["callEndpoint"] = vi.fn().mockResolvedValueOnce({
-				cloudaicompanionProject: "discovered-project-123",
-			})
+	it("uses local token counting for countTokens", async () => {
+		const total = await handler.countTokens([{ type: "text", text: "Hello" }])
+		expect(total).toBeGreaterThan(0)
+	})
 
-			const projectId = await testHandler["discoverProjectId"]()
-			expect(projectId).toBe("discovered-project-123")
-			expect(testHandler["projectId"]).toBe("discovered-project-123")
-		})
+	it("maps tool_result ids to tool names when history lacks tool_use", async () => {
+		const toolMessages: Anthropic.Messages.MessageParam[] = [
+			{
+				role: "user",
+				content: [{ type: "tool_result", tool_use_id: "list_files-0", content: "ok" }],
+			},
+		]
+		const stream = buildSseStream(["data: [DONE]"])
+		mockFetch.mockResolvedValue({ data: stream })
 
-		it("should onboard user if no existing project", async () => {
-			// Create a new handler without the mocked discoverProjectId
-			const testHandler = new GeminiCliHandler({
-				apiModelId: geminiCliDefaultModelId,
-			})
-			testHandler["authClient"].request = vi.fn().mockResolvedValue({
-				data: {},
-			})
-
-			// Mock the callEndpoint method
-			testHandler["callEndpoint"] = vi
-				.fn()
-				.mockResolvedValueOnce({
-					allowedTiers: [{ id: "free-tier", isDefault: true }],
-				})
-				.mockResolvedValueOnce({
-					done: false,
-				})
-				.mockResolvedValueOnce({
-					done: true,
-					response: {
-						cloudaicompanionProject: {
-							id: "onboarded-project-456",
-						},
+		const iterator = handler.createMessage(systemPrompt, toolMessages, {
+			taskId: "test-task",
+			tools: [
+				{
+					type: "function",
+					function: {
+						name: "list_files",
+						description: "List files",
+						parameters: { type: "object", properties: {} },
 					},
-				})
-
-			const projectId = await testHandler["discoverProjectId"]()
-			expect(projectId).toBe("onboarded-project-456")
-			expect(testHandler["projectId"]).toBe("onboarded-project-456")
-			expect(testHandler["callEndpoint"]).toHaveBeenCalledTimes(3)
+				},
+			],
 		})
+		for await (const _chunk of iterator) {
+			// consume
+		}
+
+		const body = JSON.parse((mockFetch.mock.calls[0][0] as any).data as string)
+		const toolParts = body.request.contents
+			.flatMap((content: any) => content.parts || [])
+			.filter((part: any) => part.functionResponse)
+		const toolNames = toolParts.map((part: any) => part.functionResponse.name)
+		expect(toolNames).toContain("list_files")
 	})
 
-	describe("completePrompt", () => {
-		it("should complete prompt successfully", async () => {
-			handler["authClient"].request = vi.fn().mockResolvedValue({
-				data: {
-					candidates: [
-						{
-							content: {
-								parts: [{ text: "Test response" }],
-							},
-						},
-					],
-				},
-			})
+	it("derives tool names from tool_result ids when metadata is missing", async () => {
+		const toolMessages: Anthropic.Messages.MessageParam[] = [
+			{
+				role: "user",
+				content: [{ type: "tool_result", tool_use_id: "read_file-0", content: "ok" }],
+			},
+		]
+		const stream = buildSseStream(["data: [DONE]"])
+		mockFetch.mockResolvedValue({ data: stream })
 
-			const result = await handler.completePrompt("Test prompt")
-			expect(result).toBe("Test response")
-		})
+		const iterator = handler.createMessage(systemPrompt, toolMessages)
+		for await (const _chunk of iterator) {
+			// consume
+		}
 
-		it("should handle empty response", async () => {
-			handler["authClient"].request = vi.fn().mockResolvedValue({
-				data: {
-					candidates: [],
-				},
-			})
-
-			const result = await handler.completePrompt("Test prompt")
-			expect(result).toBe("")
-		})
-
-		it("should filter out thinking parts", async () => {
-			handler["authClient"].request = vi.fn().mockResolvedValue({
-				data: {
-					candidates: [
-						{
-							content: {
-								parts: [{ text: "Thinking...", thought: true }, { text: "Actual response" }],
-							},
-						},
-					],
-				},
-			})
-
-			const result = await handler.completePrompt("Test prompt")
-			expect(result).toBe("Actual response")
-		})
-
-		it("should handle API errors", async () => {
-			handler["authClient"].request = vi.fn().mockRejectedValue(new Error("API Error"))
-
-			await expect(handler.completePrompt("Test prompt")).rejects.toThrow("errors.geminiCli.completionError")
-		})
-	})
-
-	describe("createMessage streaming", () => {
-		it("should handle streaming response with reasoning", async () => {
-			// Create a mock Node.js readable stream
-			const { Readable } = require("stream")
-			const mockStream = new Readable({
-				read() {
-					this.push('data: {"candidates":[{"content":{"parts":[{"text":"Hello"}]}}]}\n\n')
-					this.push(
-						'data: {"candidates":[{"content":{"parts":[{"thought":true,"text":"thinking..."}]}}]}\n\n',
-					)
-					this.push(
-						'data: {"candidates":[{"content":{"parts":[{"text":" world"}]}}],"usageMetadata":{"promptTokenCount":10,"candidatesTokenCount":5}}\n\n',
-					)
-					this.push("data: [DONE]\n\n")
-					this.push(null) // End the stream
-				},
-			})
-
-			handler["authClient"].request = vi.fn().mockResolvedValue({
-				data: mockStream,
-			})
-
-			const stream = handler.createMessage("System", [])
-			const chunks: any[] = []
-
-			for await (const chunk of stream) {
-				chunks.push(chunk)
-			}
-
-			// Check we got the expected chunks
-			expect(chunks).toHaveLength(4) // 2 text chunks, 1 reasoning chunk, 1 usage chunk
-
-			// Filter out only text chunks (not reasoning chunks)
-			const textChunks = chunks.filter((c) => c.type === "text").map((c) => c.text)
-			expect(textChunks).toEqual(["Hello", " world"])
-
-			// Check reasoning chunk
-			const reasoningChunks = chunks.filter((c) => c.type === "reasoning")
-			expect(reasoningChunks).toHaveLength(1)
-			expect(reasoningChunks[0].text).toBe("thinking...")
-
-			// Check usage chunk
-			const usageChunks = chunks.filter((c) => c.type === "usage")
-			expect(usageChunks).toHaveLength(1)
-			expect(usageChunks[0]).toMatchObject({
-				type: "usage",
-				inputTokens: 10,
-				outputTokens: 5,
-				totalCost: 0,
-			})
-		})
-
-		it("should handle rate limit errors", async () => {
-			handler["authClient"].request = vi.fn().mockRejectedValue({
-				response: {
-					status: 429,
-					data: { error: { message: "Rate limit exceeded" } },
-				},
-			})
-
-			const stream = handler.createMessage("System", [])
-
-			await expect(async () => {
-				for await (const _chunk of stream) {
-					// Should throw before yielding
-				}
-			}).rejects.toThrow("errors.geminiCli.rateLimitExceeded")
-		})
-	})
-
-	describe("countTokens", () => {
-		it("should fall back to base provider implementation", async () => {
-			const content = [{ type: "text" as const, text: "Hello world" }]
-			const tokenCount = await handler.countTokens(content)
-
-			// Should return a number (tiktoken fallback)
-			expect(typeof tokenCount).toBe("number")
-			expect(tokenCount).toBeGreaterThan(0)
-		})
+		const body = JSON.parse((mockFetch.mock.calls[0][0] as any).data as string)
+		const toolParts = body.request.contents
+			.flatMap((content: any) => content.parts || [])
+			.filter((part: any) => part.functionResponse)
+		const toolNames = toolParts.map((part: any) => part.functionResponse.name)
+		expect(toolNames).toContain("read_file")
 	})
 })
