@@ -99,7 +99,6 @@ describe("File-Based Custom System Prompt", () => {
 				false, // supportsImages
 				undefined, // mcpHub
 				undefined, // diffStrategy
-				undefined, // browserViewportSize
 				defaultModeSlug, // mode
 				customModePrompts, // customModePrompts
 				undefined, // customModes
@@ -135,7 +134,6 @@ describe("File-Based Custom System Prompt", () => {
 			false, // supportsImages
 			undefined, // mcpHub
 			undefined, // diffStrategy
-			undefined, // browserViewportSize
 			defaultModeSlug, // mode
 			undefined, // customModePrompts
 			undefined, // customModes
@@ -179,7 +177,6 @@ describe("File-Based Custom System Prompt", () => {
 			false, // supportsImages
 			undefined, // mcpHub
 			undefined, // diffStrategy
-			undefined, // browserViewportSize
 			defaultModeSlug, // mode
 			customModePrompts, // customModePrompts
 			undefined, // customModes
