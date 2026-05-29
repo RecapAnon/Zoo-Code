@@ -62,6 +62,15 @@ export const claudeCodeModels = {
 		reasoningEffort: "medium",
 		description: "Claude Opus 4.7 - Most capable with thinking",
 	},
+	"claude-opus-4-8": {
+		maxTokens: 128_000,
+		contextWindow: 1000000,
+		supportsImages: true,
+		supportsPromptCache: true,
+		supportsReasoningEffort: ["none", "low", "medium", "high", "xhigh", "max"],
+		reasoningEffort: "medium",
+		description: "Claude Opus 4.8 - Most capable with thinking",
+	},
 	"claude-sonnet-4-6": {
 		maxTokens: 64_000, // Overridden to 8k if `enableReasoningEffort` is false.
 		contextWindow: 200_000, // Default 200K, extendable to 1M with beta flag 'context-1m-2025-08-07'
