@@ -1,4 +1,5 @@
 export * from "./anthropic.js"
+export * from "./antigravity.js"
 export * from "./baseten.js"
 export * from "./bedrock.js"
 export * from "./claude-code.js"
@@ -31,6 +32,7 @@ export * from "./mimo.js"
 export * from "./zoo-gateway.js"
 
 import { anthropicDefaultModelId } from "./anthropic.js"
+import { antigravityDefaultModelId } from "./antigravity.js"
 import { basetenDefaultModelId } from "./baseten.js"
 import { bedrockDefaultModelId } from "./bedrock.js"
 import { claudeCodeDefaultModelId } from "./claude-code.js"
@@ -124,6 +126,8 @@ export function getProviderDefaultModelId(
 			return unboundDefaultModelId
 		case "vercel-ai-gateway":
 			return vercelAiGatewayDefaultModelId
+		case "antigravity":
+			return antigravityDefaultModelId
 		case "opencode-go":
 			return opencodeGoDefaultModelId
 		case "zoo-gateway":

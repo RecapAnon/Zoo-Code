@@ -595,6 +595,14 @@
 			"requirement4": "APIキーは使用しません - 認証はOAuthで処理されます",
 			"requirement5": "Gemini CLIツールが最初にインストールされ、認証されている必要があります",
 			"freeAccess": "OAuth認証による無料アクセス"
+		},
+		"antigravity": {
+			"description": "Antigravity は、CLIProxyAPI ツールが発行した OAuth 認証情報でアクセスする Gemini ファミリーのモデルプロバイダーです。",
+			"oauthPath": "認証情報のパス",
+			"oauthPathDescription": "Antigravity 認証情報ファイルへのパスです。空のままにすると既定の場所 (~/.antigravity/antigravity.json) を使用します。",
+			"projectId": "プロジェクト ID",
+			"projectIdDescription": "必須。Antigravity アクセスに使用する Google Cloud プロジェクト ID です。",
+			"setupInstructions": "先に次を実行して認証してください:"
 		}
 	},
 	"browser": {

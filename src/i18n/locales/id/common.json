@@ -152,6 +152,15 @@
 			"apiError": "Kesalahan API Gemini CLI: {{error}}",
 			"completionError": "Kesalahan penyelesaian Gemini CLI: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "Gagal memuat kredensial OAuth Antigravity. Autentikasi dulu dengan `cli-proxy-api login antigravity`: {{error}}",
+			"tokenRefreshFailed": "Gagal menyegarkan token OAuth Antigravity: {{error}}",
+			"projectIdMissing": "ID proyek Antigravity belum diisi. Atur ID proyek Google Cloud kamu di pengaturan penyedia.",
+			"rateLimitExceeded": "Batas laju Antigravity terlampaui. Coba lagi nanti.",
+			"badRequest": "Permintaan Antigravity tidak valid: {{details}}",
+			"apiError": "Error API Antigravity: {{error}}",
+			"completionError": "Error completion Antigravity: {{error}}"
+		},
 		"rooHistoryImport": "Gagal mengimpor riwayat Roo Code: {{error}}"
 	},
 	"warnings": {

@@ -152,6 +152,15 @@
 			"apiError": "Gemini CLI API 錯誤：{{error}}",
 			"completionError": "Gemini CLI 完成錯誤：{{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "無法載入 Antigravity OAuth 憑證。請先執行 `cli-proxy-api login antigravity` 進行驗證：{{error}}",
+			"tokenRefreshFailed": "無法重新整理 Antigravity OAuth token：{{error}}",
+			"projectIdMissing": "缺少 Antigravity 專案 ID。請在提供者設定中設定你的 Google Cloud 專案 ID。",
+			"rateLimitExceeded": "已超出 Antigravity 請求頻率限制。請稍後再試。",
+			"badRequest": "Antigravity 請求無效：{{details}}",
+			"apiError": "Antigravity API 錯誤：{{error}}",
+			"completionError": "Antigravity completion 錯誤：{{error}}"
+		},
 		"rooHistoryImport": "匯入 Roo Code 歷史記錄失敗：{{error}}"
 	},
 	"warnings": {

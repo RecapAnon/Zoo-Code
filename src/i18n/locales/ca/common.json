@@ -106,6 +106,15 @@
 			"apiError": "Error de l'API Gemini CLI: {{error}}",
 			"completionError": "Error de compleció de Gemini CLI: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "No s'han pogut carregar les credencials OAuth d'Antigravity. Autentica't primer amb `cli-proxy-api login antigravity`: {{error}}",
+			"tokenRefreshFailed": "No s'ha pogut actualitzar el token OAuth d'Antigravity: {{error}}",
+			"projectIdMissing": "Falta l'ID del projecte d'Antigravity. Configura l'ID del teu projecte de Google Cloud a la configuració del proveïdor.",
+			"rateLimitExceeded": "S'ha superat el límit de sol·licituds d'Antigravity. Torna-ho a provar més tard.",
+			"badRequest": "Sol·licitud incorrecta d'Antigravity: {{details}}",
+			"apiError": "Error de l'API d'Antigravity: {{error}}",
+			"completionError": "Error en completar amb Antigravity: {{error}}"
+		},
 		"message": {
 			"no_active_task_to_delete": "No hi ha cap tasca activa de la qual eliminar missatges",
 			"invalid_timestamp_for_deletion": "Marca de temps del missatge no vàlida per a l'eliminació",

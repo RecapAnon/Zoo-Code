@@ -152,6 +152,15 @@
 			"apiError": "Gemini CLI API hatası: {{error}}",
 			"completionError": "Gemini CLI tamamlama hatası: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "Antigravity OAuth kimlik bilgileri yüklenemedi. Önce `cli-proxy-api login antigravity` ile kimlik doğrulaması yap: {{error}}",
+			"tokenRefreshFailed": "Antigravity OAuth token yenilenemedi: {{error}}",
+			"projectIdMissing": "Antigravity proje ID'si eksik. Sağlayıcı ayarlarında Google Cloud proje ID'ni ayarla.",
+			"rateLimitExceeded": "Antigravity hız sınırı aşıldı. Lütfen daha sonra tekrar dene.",
+			"badRequest": "Geçersiz Antigravity isteği: {{details}}",
+			"apiError": "Antigravity API hatası: {{error}}",
+			"completionError": "Antigravity completion hatası: {{error}}"
+		},
 		"rooHistoryImport": "Roo Code geçmişi içe aktarılamadı: {{error}}"
 	},
 	"warnings": {

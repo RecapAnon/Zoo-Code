@@ -13,6 +13,8 @@ import {
 	geminiModels,
 	geminiCliDefaultModelId,
 	geminiCliModels,
+	antigravityDefaultModelId,
+	antigravityModels,
 	mistralModels,
 	openAiModelInfoSaneDefaults,
 	openAiNativeModels,
@@ -240,6 +242,11 @@ function getSelectedModel({
 		case "gemini-cli": {
 			const id = apiConfiguration.apiModelId ?? geminiCliDefaultModelId
 			const info = geminiCliModels[id as keyof typeof geminiCliModels]
+			return { id, info }
+		}
+		case "antigravity": {
+			const id = apiConfiguration.apiModelId ?? antigravityDefaultModelId
+			const info = antigravityModels[id as keyof typeof antigravityModels]
 			return { id, info }
 		}
 		case "deepseek": {

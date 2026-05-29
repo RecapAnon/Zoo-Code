@@ -14,6 +14,8 @@ import {
 	minimaxDefaultModelId,
 	minimaxModels,
 	openRouterDefaultModelId,
+	antigravityDefaultModelId,
+	antigravityModels,
 } from "@roo-code/types"
 
 import { useSelectedModel } from "../useSelectedModel"
@@ -841,6 +843,35 @@ describe("useSelectedModel", () => {
 			expect(result.current.provider).toBe("minimax")
 			expect(result.current.id).toBe("MiniMax-M2.7")
 			expect(result.current.info).toEqual(minimaxModels["MiniMax-M2.7"])
+		})
+	})
+
+	describe("antigravity provider", () => {
+		it("falls back to antigravityDefaultModelId when no apiModelId is configured", () => {
+			const apiConfiguration: ProviderSettings = {
+				apiProvider: "antigravity",
+			}
+
+			const wrapper = createWrapper()
+			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
+
+			expect(result.current.provider).toBe("antigravity")
+			expect(result.current.id).toBe(antigravityDefaultModelId)
+			expect(result.current.info).toEqual(antigravityModels[antigravityDefaultModelId])
+		})
+
+		it("resolves a known Antigravity-only model ID from the dedicated registry", () => {
+			const apiConfiguration: ProviderSettings = {
+				apiProvider: "antigravity",
+				apiModelId: "claude-opus-4-6-thinking",
+			}
+
+			const wrapper = createWrapper()
+			const { result } = renderHook(() => useSelectedModel(apiConfiguration), { wrapper })
+
+			expect(result.current.provider).toBe("antigravity")
+			expect(result.current.id).toBe("claude-opus-4-6-thinking")
+			expect(result.current.info).toEqual(antigravityModels["claude-opus-4-6-thinking"])
 		})
 	})
 })

@@ -596,6 +596,14 @@
 			"maxTokensLabel": "Tokens màxims de sortida",
 			"maxTokensDescription": "Nombre màxim de tokens de sortida per a les respostes de Claude Code. El valor per defecte és 8000."
 		},
+		"antigravity": {
+			"description": "Antigravity és un proveïdor de models de la família Gemini al qual s'accedeix amb credencials OAuth emeses per l'eina CLIProxyAPI.",
+			"oauthPath": "Camí de les credencials",
+			"oauthPathDescription": "Camí al fitxer de credencials d'Antigravity. Deixa'l buit per utilitzar la ubicació predeterminada (~/.antigravity/antigravity.json).",
+			"projectId": "ID del projecte",
+			"projectIdDescription": "Obligatori. L'ID del teu projecte de Google Cloud utilitzat per a l'accés a Antigravity.",
+			"setupInstructions": "Autentica't primer executant:"
+		},
 		"openAiStrictToolMessageOrdering": {
 			"label": "Ordre estricte de missatges d'eines",
 			"description": "Activa per a proveïdors com NVIDIA NIM i Devstral que requereixen un ordre estricte de missatges. Quan està activat, el contingut de text després dels resultats d'eines es fusiona en l'últim missatge d'eina en lloc de crear un missatge d'usuari separat."

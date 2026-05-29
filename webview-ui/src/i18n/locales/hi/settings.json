@@ -595,6 +595,14 @@
 			"requirement4": "API कुंजियों का उपयोग नहीं करता - प्रमाणीकरण OAuth के माध्यम से संभाला जाता है",
 			"requirement5": "Gemini CLI टूल को पहले इंस्टॉल और प्रमाणित करने की आवश्यकता है",
 			"freeAccess": "OAuth प्रमाणीकरण के माध्यम से मुफ्त पहुंच"
+		},
+		"antigravity": {
+			"description": "Antigravity Gemini परिवार का मॉडल प्रदाता है, जिसे CLIProxyAPI टूल द्वारा जारी OAuth क्रेडेंशियल से एक्सेस किया जाता है।",
+			"oauthPath": "क्रेडेंशियल पथ",
+			"oauthPathDescription": "आपकी Antigravity क्रेडेंशियल फ़ाइल का पथ। डिफ़ॉल्ट स्थान (~/.antigravity/antigravity.json) उपयोग करने के लिए खाली छोड़ें।",
+			"projectId": "प्रोजेक्ट ID",
+			"projectIdDescription": "आवश्यक। Antigravity एक्सेस के लिए उपयोग किया जाने वाला आपका Google Cloud प्रोजेक्ट ID।",
+			"setupInstructions": "पहले यह चलाकर प्रमाणित करें:"
 		}
 	},
 	"browser": {

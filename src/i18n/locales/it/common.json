@@ -152,6 +152,15 @@
 			"apiError": "Errore API Gemini CLI: {{error}}",
 			"completionError": "Errore di completamento Gemini CLI: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "Impossibile caricare le credenziali OAuth di Antigravity. Autenticati prima con `cli-proxy-api login antigravity`: {{error}}",
+			"tokenRefreshFailed": "Impossibile aggiornare il token OAuth di Antigravity: {{error}}",
+			"projectIdMissing": "L'ID progetto Antigravity manca. Imposta l'ID del tuo progetto Google Cloud nelle impostazioni del provider.",
+			"rateLimitExceeded": "Limite di richieste Antigravity superato. Riprova più tardi.",
+			"badRequest": "Richiesta Antigravity non valida: {{details}}",
+			"apiError": "Errore API Antigravity: {{error}}",
+			"completionError": "Errore di completion Antigravity: {{error}}"
+		},
 		"rooHistoryImport": "Impossibile importare la cronologia di Roo Code: {{error}}"
 	},
 	"warnings": {

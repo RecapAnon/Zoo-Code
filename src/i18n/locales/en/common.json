@@ -104,6 +104,15 @@
 			"apiError": "Gemini CLI API error: {{error}}",
 			"completionError": "Gemini CLI completion error: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "Failed to load Antigravity OAuth credentials. Authenticate first with `cli-proxy-api login antigravity`: {{error}}",
+			"tokenRefreshFailed": "Failed to refresh Antigravity OAuth token: {{error}}",
+			"projectIdMissing": "Antigravity project ID is missing. Set your Google Cloud project ID in the provider settings.",
+			"rateLimitExceeded": "Antigravity rate limit exceeded. Please try again later.",
+			"badRequest": "Bad Antigravity request: {{details}}",
+			"apiError": "Antigravity API error: {{error}}",
+			"completionError": "Antigravity completion error: {{error}}"
+		},
 		"message": {
 			"no_active_task_to_delete": "No active task to delete messages from",
 			"invalid_timestamp_for_deletion": "Invalid message timestamp for deletion",

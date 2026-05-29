@@ -8,6 +8,7 @@ import { ApiStream } from "./transform/stream"
 
 import {
 	AnthropicHandler,
+	AntigravityHandler,
 	AwsBedrockHandler,
 	OpenRouterHandler,
 	PoeHandler,
@@ -156,6 +157,8 @@ export function buildApiHandler(configuration: ProviderSettings): ApiHandler {
 			return new GeminiHandler(options)
 		case "gemini-cli":
 			return new GeminiCliHandler(options)
+		case "antigravity":
+			return new AntigravityHandler(options)
 		case "openai-codex":
 			return new OpenAiCodexHandler(options)
 		case "openai-native":

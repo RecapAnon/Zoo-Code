@@ -595,6 +595,14 @@
 			"requirement4": "API anahtarları kullanmaz - kimlik doğrulama OAuth ile yapılır",
 			"requirement5": "Gemini CLI aracının önce yüklenmesi ve kimlik doğrulaması yapılması gerekir",
 			"freeAccess": "OAuth kimlik doğrulaması ile ücretsiz erişim"
+		},
+		"antigravity": {
+			"description": "Antigravity, CLIProxyAPI aracı tarafından verilen OAuth kimlik bilgileriyle erişilen Gemini ailesi bir model sağlayıcısıdır.",
+			"oauthPath": "Kimlik bilgileri yolu",
+			"oauthPathDescription": "Antigravity kimlik bilgileri dosyanın yolu. Varsayılan konumu kullanmak için boş bırak (~/.antigravity/antigravity.json).",
+			"projectId": "Proje ID'si",
+			"projectIdDescription": "Gerekli. Antigravity erişimi için kullanılan Google Cloud proje ID'n.",
+			"setupInstructions": "Önce şunu çalıştırarak kimlik doğrulaması yap:"
 		}
 	},
 	"browser": {

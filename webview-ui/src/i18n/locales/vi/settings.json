@@ -595,6 +595,14 @@
 			"requirement4": "Không sử dụng khóa API - xác thực được xử lý qua OAuth",
 			"requirement5": "Yêu cầu công cụ Gemini CLI được cài đặt và xác thực trước",
 			"freeAccess": "Truy cập miễn phí qua xác thực OAuth"
+		},
+		"antigravity": {
+			"description": "Antigravity là nhà cung cấp mô hình thuộc họ Gemini, truy cập bằng thông tin xác thực OAuth do công cụ CLIProxyAPI cấp.",
+			"oauthPath": "Đường dẫn thông tin xác thực",
+			"oauthPathDescription": "Đường dẫn đến tệp thông tin xác thực Antigravity của bạn. Để trống để dùng vị trí mặc định (~/.antigravity/antigravity.json).",
+			"projectId": "ID dự án",
+			"projectIdDescription": "Bắt buộc. ID dự án Google Cloud của bạn dùng để truy cập Antigravity.",
+			"setupInstructions": "Xác thực trước bằng cách chạy:"
 		}
 	},
 	"browser": {

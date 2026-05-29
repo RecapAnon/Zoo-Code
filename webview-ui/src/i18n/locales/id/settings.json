@@ -595,6 +595,14 @@
 			"requirement4": "Tidak menggunakan kunci API - autentikasi ditangani melalui OAuth",
 			"requirement5": "Memerlukan alat Gemini CLI diinstal dan diautentikasi terlebih dahulu",
 			"freeAccess": "Akses gratis melalui autentikasi OAuth"
+		},
+		"antigravity": {
+			"description": "Antigravity adalah penyedia model keluarga Gemini yang diakses melalui kredensial OAuth yang diterbitkan oleh alat CLIProxyAPI.",
+			"oauthPath": "Jalur Kredensial",
+			"oauthPathDescription": "Jalur ke file kredensial Antigravity kamu. Kosongkan untuk menggunakan lokasi default (~/.antigravity/antigravity.json).",
+			"projectId": "ID Proyek",
+			"projectIdDescription": "Wajib. ID proyek Google Cloud kamu yang digunakan untuk akses Antigravity.",
+			"setupInstructions": "Autentikasi dulu dengan menjalankan:"
 		}
 	},
 	"browser": {

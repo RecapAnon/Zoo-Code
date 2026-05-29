@@ -85,6 +85,8 @@ function validateModelsAndKeysProvided(
 		case "gemini-cli":
 			// OAuth-based provider, no API key validation needed
 			break
+		case "antigravity":
+			break
 		case "openai-native":
 			if (!apiConfiguration.openAiNativeApiKey) {
 				return i18next.t("settings:validation.apiKey")

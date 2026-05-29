@@ -595,6 +595,14 @@
 			"requirement4": "不使用 API 密钥 - 身份验证通过 OAuth 处理",
 			"requirement5": "需要先安装并验证 Gemini CLI 工具",
 			"freeAccess": "通过 OAuth 身份验证免费访问"
+		},
+		"antigravity": {
+			"description": "Antigravity 是 Gemini 系列模型提供商，通过 CLIProxyAPI 工具签发的 OAuth 凭据访问。",
+			"oauthPath": "凭据路径",
+			"oauthPathDescription": "Antigravity 凭据文件路径。留空则使用默认位置（~/.antigravity/antigravity.json）。",
+			"projectId": "项目 ID",
+			"projectIdDescription": "必填。用于访问 Antigravity 的 Google Cloud 项目 ID。",
+			"setupInstructions": "请先运行以下命令进行身份验证："
 		}
 	},
 	"browser": {

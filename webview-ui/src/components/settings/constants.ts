@@ -2,6 +2,7 @@ import {
 	type ProviderName,
 	type ModelInfo,
 	anthropicModels,
+	antigravityModels,
 	bedrockModels,
 	claudeCodeModels,
 	deepSeekModels,
@@ -24,6 +25,7 @@ import {
 
 export const MODELS_BY_PROVIDER: Partial<Record<ProviderName, Record<string, ModelInfo>>> = {
 	anthropic: anthropicModels,
+	antigravity: antigravityModels,
 	"claude-code": claudeCodeModels,
 	bedrock: bedrockModels,
 	deepseek: deepSeekModels,
@@ -50,6 +52,7 @@ export const PROVIDERS = [
 	{ value: "claude-code", label: "Claude Code", proxy: false },
 	{ value: "gemini", label: "Google Gemini", proxy: false },
 	{ value: "gemini-cli", label: "Gemini CLI" },
+	{ value: "antigravity", label: "Antigravity" },
 	{ value: "deepseek", label: "DeepSeek", proxy: false },
 	{ value: "moonshot", label: "Moonshot", proxy: false },
 	{ value: "openai-native", label: "OpenAI", proxy: false },

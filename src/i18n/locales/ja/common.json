@@ -152,6 +152,15 @@
 			"apiError": "Gemini CLI APIエラー: {{error}}",
 			"completionError": "Gemini CLI補完エラー: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "Antigravity の OAuth 認証情報を読み込めませんでした。先に `cli-proxy-api login antigravity` で認証してください: {{error}}",
+			"tokenRefreshFailed": "Antigravity の OAuth token の更新に失敗しました: {{error}}",
+			"projectIdMissing": "Antigravity のプロジェクト ID がありません。プロバイダー設定で Google Cloud プロジェクト ID を設定してください。",
+			"rateLimitExceeded": "Antigravity のレート制限を超えました。後でもう一度お試しください。",
+			"badRequest": "不正な Antigravity リクエスト: {{details}}",
+			"apiError": "Antigravity API エラー: {{error}}",
+			"completionError": "Antigravity completion エラー: {{error}}"
+		},
 		"rooHistoryImport": "Roo Codeの履歴のインポートに失敗しました: {{error}}"
 	},
 	"warnings": {

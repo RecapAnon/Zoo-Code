@@ -1,4 +1,5 @@
 export { Anthropic } from "./Anthropic"
+export { Antigravity } from "./Antigravity"
 export { Bedrock } from "./Bedrock"
 export { ClaudeCode } from "./ClaudeCode"
 export { DeepSeek } from "./DeepSeek"

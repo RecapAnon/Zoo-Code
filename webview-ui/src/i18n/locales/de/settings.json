@@ -599,6 +599,14 @@
 			"requirement4": "Verwendet keine API-Schlüssel - Authentifizierung wird über OAuth abgewickelt",
 			"requirement5": "Erfordert, dass das Gemini CLI-Tool zuerst installiert und authentifiziert wird",
 			"freeAccess": "Kostenloser Zugang über OAuth-Authentifizierung"
+		},
+		"antigravity": {
+			"description": "Antigravity ist ein Modellanbieter der Gemini-Familie, der über OAuth-Anmeldedaten aus dem CLIProxyAPI-Tool genutzt wird.",
+			"oauthPath": "Anmeldedatenpfad",
+			"oauthPathDescription": "Pfad zu deiner Antigravity-Anmeldedatendatei. Leer lassen, um den Standardort zu verwenden (~/.antigravity/antigravity.json).",
+			"projectId": "Projekt-ID",
+			"projectIdDescription": "Erforderlich. Deine Google Cloud-Projekt-ID für den Antigravity-Zugriff.",
+			"setupInstructions": "Authentifiziere dich zuerst mit:"
 		}
 	},
 	"browser": {

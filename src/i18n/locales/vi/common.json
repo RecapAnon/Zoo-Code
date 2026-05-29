@@ -152,6 +152,15 @@
 			"apiError": "Lỗi API Gemini CLI: {{error}}",
 			"completionError": "Lỗi hoàn thành Gemini CLI: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "Không tải được thông tin xác thực OAuth của Antigravity. Hãy xác thực trước bằng `cli-proxy-api login antigravity`: {{error}}",
+			"tokenRefreshFailed": "Không làm mới được token OAuth của Antigravity: {{error}}",
+			"projectIdMissing": "Thiếu ID dự án Antigravity. Đặt ID dự án Google Cloud của bạn trong cài đặt nhà cung cấp.",
+			"rateLimitExceeded": "Đã vượt quá giới hạn tốc độ của Antigravity. Vui lòng thử lại sau.",
+			"badRequest": "Yêu cầu Antigravity không hợp lệ: {{details}}",
+			"apiError": "Lỗi API Antigravity: {{error}}",
+			"completionError": "Lỗi completion Antigravity: {{error}}"
+		},
 		"rooHistoryImport": "Không thể nhập lịch sử Roo Code: {{error}}"
 	},
 	"warnings": {

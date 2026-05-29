@@ -48,6 +48,7 @@ import {
 
 import {
 	Anthropic,
+	Antigravity,
 	Baseten,
 	Bedrock,
 	ClaudeCode,
@@ -116,8 +117,7 @@ const ApiOptions = ({
 	setErrorMessage,
 }: ApiOptionsProps) => {
 	const { t } = useAppTranslation()
-	const { organizationAllowList, claudeCodeIsAuthenticated, openAiCodexIsAuthenticated } =
-		useExtensionState()
+	const { organizationAllowList, claudeCodeIsAuthenticated, openAiCodexIsAuthenticated } = useExtensionState()
 
 	const [customHeaders, setCustomHeaders] = useState<[string, string][]>(() => {
 		const headers = apiConfiguration?.openAiHeaders || {}
@@ -538,7 +538,17 @@ const ApiOptions = ({
 					)}
 
 					{selectedProvider === "gemini-cli" && (
-						<GeminiCli apiConfiguration={apiConfiguration} setApiConfigurationField={setApiConfigurationField} />
+						<GeminiCli
+							apiConfiguration={apiConfiguration}
+							setApiConfigurationField={setApiConfigurationField}
+						/>
+					)}
+
+					{selectedProvider === "antigravity" && (
+						<Antigravity
+							apiConfiguration={apiConfiguration}
+							setApiConfigurationField={setApiConfigurationField}
+						/>
 					)}
 
 					{selectedProvider === "openai" && (

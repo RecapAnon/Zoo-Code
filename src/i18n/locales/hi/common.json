@@ -152,6 +152,15 @@
 			"apiError": "Gemini CLI API त्रुटि: {{error}}",
 			"completionError": "Gemini CLI पूर्णता त्रुटि: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "Antigravity OAuth क्रेडेंशियल लोड नहीं हो सके। पहले `cli-proxy-api login antigravity` से प्रमाणित करें: {{error}}",
+			"tokenRefreshFailed": "Antigravity OAuth token रीफ़्रेश करने में विफल: {{error}}",
+			"projectIdMissing": "Antigravity प्रोजेक्ट ID गायब है। प्रदाता सेटिंग में अपना Google Cloud प्रोजेक्ट ID सेट करें।",
+			"rateLimitExceeded": "Antigravity दर सीमा पार हो गई। कृपया बाद में फिर कोशिश करें।",
+			"badRequest": "खराब Antigravity अनुरोध: {{details}}",
+			"apiError": "Antigravity API त्रुटि: {{error}}",
+			"completionError": "Antigravity completion त्रुटि: {{error}}"
+		},
 		"rooHistoryImport": "Roo Code इतिहास आयात करने में विफल: {{error}}"
 	},
 	"warnings": {

@@ -28,6 +28,7 @@ import {
 	zooGatewayDefaultModelId,
 	claudeCodeDefaultModelId,
 	geminiCliDefaultModelId,
+	antigravityDefaultModelId,
 } from "@roo-code/types"
 
 import { MODELS_BY_PROVIDER } from "../constants"
@@ -115,6 +116,7 @@ const PROVIDER_MODEL_CONFIG: Partial<Record<ProviderName, ProviderModelConfig>> 
 	"openai-native": { field: "apiModelId", default: openAiNativeDefaultModelId },
 	gemini: { field: "apiModelId", default: geminiDefaultModelId },
 	"gemini-cli": { field: "apiModelId", default: geminiCliDefaultModelId },
+	antigravity: { field: "apiModelId", default: antigravityDefaultModelId },
 	deepseek: { field: "apiModelId", default: deepSeekDefaultModelId },
 	moonshot: { field: "apiModelId", default: moonshotDefaultModelId },
 	minimax: { field: "apiModelId", default: minimaxDefaultModelId },

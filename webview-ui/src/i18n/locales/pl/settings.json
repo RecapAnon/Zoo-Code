@@ -595,6 +595,14 @@
 			"requirement4": "Nie używa kluczy API - uwierzytelnianie jest obsługiwane przez OAuth",
 			"requirement5": "Wymaga, aby narzędzie Gemini CLI było najpierw zainstalowane i uwierzytelnione",
 			"freeAccess": "Darmowy dostęp przez uwierzytelnianie OAuth"
+		},
+		"antigravity": {
+			"description": "Antigravity to dostawca modeli z rodziny Gemini dostępny przez dane OAuth wydane przez narzędzie CLIProxyAPI.",
+			"oauthPath": "Ścieżka danych uwierzytelniających",
+			"oauthPathDescription": "Ścieżka do pliku danych uwierzytelniających Antigravity. Zostaw puste, aby użyć domyślnej lokalizacji (~/.antigravity/antigravity.json).",
+			"projectId": "ID projektu",
+			"projectIdDescription": "Wymagane. ID projektu Google Cloud używane do dostępu Antigravity.",
+			"setupInstructions": "Najpierw uwierzytelnij się, uruchamiając:"
 		}
 	},
 	"browser": {

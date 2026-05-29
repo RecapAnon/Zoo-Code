@@ -103,6 +103,15 @@
 			"apiError": "Gemini CLI API-Fehler: {{error}}",
 			"completionError": "Gemini CLI Vervollständigungsfehler: {{error}}"
 		},
+		"antigravity": {
+			"oauthLoadFailed": "Antigravity-OAuth-Anmeldedaten konnten nicht geladen werden. Authentifiziere dich zuerst mit `cli-proxy-api login antigravity`: {{error}}",
+			"tokenRefreshFailed": "Antigravity-OAuth-token konnte nicht aktualisiert werden: {{error}}",
+			"projectIdMissing": "Antigravity-Projekt-ID fehlt. Lege deine Google Cloud-Projekt-ID in den Anbieter-Einstellungen fest.",
+			"rateLimitExceeded": "Antigravity-Anfragenlimit überschritten. Bitte versuche es später erneut.",
+			"badRequest": "Ungültige Antigravity-Anfrage: {{details}}",
+			"apiError": "Antigravity-API-Fehler: {{error}}",
+			"completionError": "Antigravity-Completion-Fehler: {{error}}"
+		},
 		"message": {
 			"no_active_task_to_delete": "Keine aktive Aufgabe, aus der Nachrichten gelöscht werden können",
 			"invalid_timestamp_for_deletion": "Ungültiger Nachrichten-Zeitstempel zum Löschen",

@@ -5,8 +5,13 @@ export function checkExistKey(config: ProviderSettings | undefined) {
 		return false
 	}
 
-	// Special case for fake-ai, claude-code, gemini-cli, openai-codex, and qwen-code providers which don't need any configuration.
-	if (config.apiProvider && ["fake-ai", "claude-code", "gemini-cli", "openai-codex", "qwen-code"].includes(config.apiProvider)) {
+	// Special case for fake-ai, claude-code, gemini-cli, antigravity, openai-codex, and qwen-code providers which don't need any configuration.
+	if (
+		config.apiProvider &&
+		["fake-ai", "claude-code", "gemini-cli", "antigravity", "openai-codex", "qwen-code"].includes(
+			config.apiProvider,
+		)
+	) {
 		return true
 	}
 
