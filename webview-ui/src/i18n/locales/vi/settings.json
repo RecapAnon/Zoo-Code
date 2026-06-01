@@ -597,12 +597,13 @@
 			"freeAccess": "Truy cập miễn phí qua xác thực OAuth"
 		},
 		"antigravity": {
-			"description": "Antigravity là nhà cung cấp mô hình thuộc họ Gemini, truy cập bằng thông tin xác thực OAuth do công cụ CLIProxyAPI cấp.",
-			"oauthPath": "Đường dẫn thông tin xác thực",
-			"oauthPathDescription": "Đường dẫn đến tệp thông tin xác thực Antigravity của bạn. Để trống để dùng vị trí mặc định (~/.antigravity/antigravity.json).",
-			"projectId": "ID dự án",
-			"projectIdDescription": "Bắt buộc. ID dự án Google Cloud của bạn dùng để truy cập Antigravity.",
-			"setupInstructions": "Xác thực trước bằng cách chạy:"
+			"description": "Antigravity is a Gemini-family model provider that uses your Google account via OAuth.",
+			"signInButton": "Sign in to Antigravity",
+			"signOutButton": "Sign Out",
+			"signedInAs": "Signed in as {{email}}",
+			"signedIn": "Signed in",
+			"projectId": "Project ID",
+			"projectIdDescription": "Required. Your Google Cloud project ID used for Antigravity access."
 		}
 	},
 	"browser": {

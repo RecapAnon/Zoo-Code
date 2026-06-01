@@ -23,6 +23,7 @@ import { getModelParams } from "../transform/model-params"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { BaseProvider } from "./base-provider"
 import { antigravityOAuthManager } from "../../integrations/antigravity/oauth"
+import { buildFunctionDeclaration } from "./antigravity-schema"
 
 // Antigravity uses the same Code Assist backend host as Gemini CLI but a different request envelope.
 const ANTIGRAVITY_BASE_URL = "https://cloudcode-pa.googleapis.com"
@@ -30,7 +31,6 @@ const ANTIGRAVITY_API_VERSION = "v1internal"
 const ANTIGRAVITY_USER_AGENT = "antigravity/1.21.9 darwin/arm64"
 
 interface AntigravityHandlerOptions extends ApiHandlerOptions {
-	antigravityOAuthPath?: string
 	antigravityProjectId?: string
 }
 
@@ -102,10 +102,6 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 		return projectId
 	}
 
-	private getOAuthPath(): string | undefined {
-		return this.options.antigravityOAuthPath
-	}
-
 	private buildHeaders(token: string): Record<string, string> {
 		return {
 			"Content-Type": "application/json",
@@ -133,7 +129,7 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 		contents: Array<{ role?: string; parts?: Array<{ text?: string }> }>
 		includeThoughtSignatures: boolean
 	} {
-		const { info, reasoning: thinkingConfig, maxTokens } = this.getModel()
+		const { id: modelId, info, reasoning: thinkingConfig, maxTokens } = this.getModel()
 		this.lastThoughtSignature = undefined
 		this.lastResponseId = undefined
 
@@ -166,13 +162,10 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 			.map((message) => convertAnthropicMessageToGemini(message, { includeThoughtSignatures, toolIdToName }))
 			.flat()
 
-		const tools: GenerateContentConfig["tools"] = [
+		const metadataTools = metadata?.tools ?? []
+		const tools: NonNullable<GenerateContentConfig["tools"]> = [
 			{
-				functionDeclarations: (metadata?.tools ?? []).map((tool) => ({
-					name: (tool as any).function.name,
-					description: (tool as any).function.description,
-					parametersJsonSchema: (tool as any).function.parameters,
-				})),
+				functionDeclarations: metadataTools.map((tool) => buildFunctionDeclaration(tool as any, modelId)),
 			},
 		]
 
@@ -237,7 +230,10 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 		if (systemInstruction) {
 			request.systemInstruction = { role: "system", parts: [{ text: systemInstruction }] }
 		}
-		if (tools.length > 0 && (tools[0] as any).functionDeclarations?.length > 0) {
+		// Only attach tools when at least one was actually declared. Both branches above
+		// allocate a top-level container even when `metadataTools` is empty (Gemini path
+		// produces `[{ functionDeclarations: [] }]`), so we gate on the source list.
+		if (metadataTools.length > 0) {
 			request.tools = tools
 		}
 		if (toolConfig) {
@@ -498,14 +494,14 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 		}
 
 		try {
-			let credentials = await antigravityOAuthManager.ensureAuthenticated({ path: this.getOAuthPath() })
+			let credentials = await antigravityOAuthManager.ensureAuthenticated()
 			let response = await sendRequest(credentials.access_token)
 
 			// Single 401 retry: the local token may have been server-revoked despite passing local
 			// expiry checks. Force a refresh and reissue once. No looping, no silent fallback.
 			if (response.status === 401) {
 				try {
-					credentials = await antigravityOAuthManager.forceRefresh({ path: this.getOAuthPath() })
+					credentials = await antigravityOAuthManager.forceRefresh()
 				} catch (refreshError) {
 					const msg = refreshError instanceof Error ? refreshError.message : String(refreshError)
 					throw new Error(t("common:errors.antigravity.tokenRefreshFailed", { error: msg }))
@@ -555,12 +551,12 @@ export class AntigravityHandler extends BaseProvider implements SingleCompletion
 		}
 
 		try {
-			let credentials = await antigravityOAuthManager.ensureAuthenticated({ path: this.getOAuthPath() })
+			let credentials = await antigravityOAuthManager.ensureAuthenticated()
 			let response = await sendRequest(credentials.access_token)
 
 			if (response.status === 401) {
 				try {
-					credentials = await antigravityOAuthManager.forceRefresh({ path: this.getOAuthPath() })
+					credentials = await antigravityOAuthManager.forceRefresh()
 				} catch (refreshError) {
 					const msg = refreshError instanceof Error ? refreshError.message : String(refreshError)
 					throw new Error(t("common:errors.antigravity.tokenRefreshFailed", { error: msg }))

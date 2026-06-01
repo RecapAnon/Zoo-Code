@@ -2689,6 +2689,47 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
+		case "antigravitySignIn": {
+			try {
+				const { antigravityOAuthManager } = await import("../../integrations/antigravity/oauth")
+				const authUrl = await antigravityOAuthManager.startAuthorizationFlow()
+
+				// Open the authorization URL in the system browser.
+				await vscode.env.openExternal(vscode.Uri.parse(authUrl))
+
+				// Wait for callback in a separate (non-blocking) promise so we can return from this
+				// handler immediately and free the message channel.
+				antigravityOAuthManager
+					.waitForCallback()
+					.then(async () => {
+						vscode.window.showInformationMessage("Successfully signed in to Antigravity")
+						await provider.postStateToWebview()
+					})
+					.catch((error) => {
+						provider.log(`Antigravity OAuth callback failed: ${error}`)
+						if (!String(error).includes("timed out")) {
+							vscode.window.showErrorMessage(`Antigravity sign in failed: ${error.message || error}`)
+						}
+					})
+			} catch (error) {
+				provider.log(`Antigravity OAuth failed: ${error}`)
+				vscode.window.showErrorMessage("Antigravity sign in failed.")
+			}
+			break
+		}
+		case "antigravitySignOut": {
+			try {
+				const { antigravityOAuthManager } = await import("../../integrations/antigravity/oauth")
+				antigravityOAuthManager.cancelAuthorizationFlow()
+				await antigravityOAuthManager.clearCredentials()
+				vscode.window.showInformationMessage("Signed out from Antigravity")
+				await provider.postStateToWebview()
+			} catch (error) {
+				provider.log(`Antigravity sign out failed: ${error}`)
+				vscode.window.showErrorMessage("Antigravity sign out failed.")
+			}
+			break
+		}
 		case "rooCloudManualUrl": {
 			if (!isCloudServiceAvailable()) {
 				provider.log("CloudService unavailable; ignoring rooCloudManualUrl")

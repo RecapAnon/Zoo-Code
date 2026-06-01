@@ -158,13 +158,16 @@
 			"completionError": "Gemini CLI 补全错误：{{error}}"
 		},
 		"antigravity": {
-			"oauthLoadFailed": "无法加载 Antigravity OAuth 凭据。请先运行 `cli-proxy-api login antigravity` 进行身份验证：{{error}}",
-			"tokenRefreshFailed": "无法刷新 Antigravity OAuth token：{{error}}",
-			"projectIdMissing": "缺少 Antigravity 项目 ID。请在提供商设置中设置你的 Google Cloud 项目 ID。",
-			"rateLimitExceeded": "已超出 Antigravity 请求频率限制。请稍后重试。",
-			"badRequest": "Antigravity 请求无效：{{details}}",
-			"apiError": "Antigravity API 错误：{{error}}",
-			"completionError": "Antigravity completion 错误：{{error}}"
+			"oauthLoadFailed": "Antigravity is not signed in. Use the Sign in button in the Antigravity provider settings: {{error}}",
+			"tokenRefreshFailed": "Failed to refresh Antigravity OAuth token: {{error}}",
+			"signInFailed": "Antigravity sign in failed: {{error}}",
+			"signedOut": "Signed out from Antigravity",
+			"loopbackPortBindFailed": "Could not bind a loopback port for Antigravity sign-in. Close other apps using local ports and try again.",
+			"projectIdMissing": "Antigravity project ID is missing. Set your Google Cloud project ID in the provider settings.",
+			"rateLimitExceeded": "Antigravity rate limit exceeded. Please try again later.",
+			"badRequest": "Bad Antigravity request: {{details}}",
+			"apiError": "Antigravity API error: {{error}}",
+			"completionError": "Antigravity completion error: {{error}}"
 		},
 		"rooHistoryImport": "导入 Roo Code 历史记录失败：{{error}}"
 	},

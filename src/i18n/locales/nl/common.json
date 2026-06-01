@@ -153,13 +153,16 @@
 			"completionError": "Gemini CLI voltooiingsfout: {{error}}"
 		},
 		"antigravity": {
-			"oauthLoadFailed": "Kan Antigravity OAuth-referenties niet laden. Authenticeer eerst met `cli-proxy-api login antigravity`: {{error}}",
-			"tokenRefreshFailed": "Kan Antigravity OAuth-token niet vernieuwen: {{error}}",
-			"projectIdMissing": "Antigravity-project-ID ontbreekt. Stel je Google Cloud-project-ID in bij de providerinstellingen.",
-			"rateLimitExceeded": "Antigravity-snelheidslimiet overschreden. Probeer het later opnieuw.",
-			"badRequest": "Ongeldige Antigravity-aanvraag: {{details}}",
-			"apiError": "Antigravity API-fout: {{error}}",
-			"completionError": "Antigravity completion-fout: {{error}}"
+			"oauthLoadFailed": "Antigravity is not signed in. Use the Sign in button in the Antigravity provider settings: {{error}}",
+			"tokenRefreshFailed": "Failed to refresh Antigravity OAuth token: {{error}}",
+			"signInFailed": "Antigravity sign in failed: {{error}}",
+			"signedOut": "Signed out from Antigravity",
+			"loopbackPortBindFailed": "Could not bind a loopback port for Antigravity sign-in. Close other apps using local ports and try again.",
+			"projectIdMissing": "Antigravity project ID is missing. Set your Google Cloud project ID in the provider settings.",
+			"rateLimitExceeded": "Antigravity rate limit exceeded. Please try again later.",
+			"badRequest": "Bad Antigravity request: {{details}}",
+			"apiError": "Antigravity API error: {{error}}",
+			"completionError": "Antigravity completion error: {{error}}"
 		},
 		"rooHistoryImport": "Importeren van Roo Code-geschiedenis mislukt: {{error}}"
 	},

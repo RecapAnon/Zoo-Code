@@ -117,7 +117,13 @@ const ApiOptions = ({
 	setErrorMessage,
 }: ApiOptionsProps) => {
 	const { t } = useAppTranslation()
-	const { organizationAllowList, claudeCodeIsAuthenticated, openAiCodexIsAuthenticated } = useExtensionState()
+	const {
+		organizationAllowList,
+		claudeCodeIsAuthenticated,
+		openAiCodexIsAuthenticated,
+		antigravityIsAuthenticated,
+		antigravityUserEmail,
+	} = useExtensionState()
 
 	const [customHeaders, setCustomHeaders] = useState<[string, string][]>(() => {
 		const headers = apiConfiguration?.openAiHeaders || {}
@@ -548,6 +554,8 @@ const ApiOptions = ({
 						<Antigravity
 							apiConfiguration={apiConfiguration}
 							setApiConfigurationField={setApiConfigurationField}
+							antigravityIsAuthenticated={antigravityIsAuthenticated}
+							antigravityUserEmail={antigravityUserEmail}
 						/>
 					)}
 

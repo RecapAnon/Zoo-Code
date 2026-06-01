@@ -415,6 +415,8 @@ export type ExtensionState = Pick<
 	taskSyncEnabled: boolean
 	claudeCodeIsAuthenticated?: boolean
 	openAiCodexIsAuthenticated?: boolean
+	antigravityIsAuthenticated?: boolean
+	antigravityUserEmail?: string
 	zooCodeIsAuthenticated?: boolean
 	zooCodeUserName?: string
 	zooCodeUserEmail?: string
@@ -572,6 +574,8 @@ export interface WebviewMessage {
 		| "claudeCodeSignOut"
 		| "openAiCodexSignIn"
 		| "openAiCodexSignOut"
+		| "antigravitySignIn"
+		| "antigravitySignOut"
 		| "zooCodeSignOut"
 		| "switchOrganization"
 		| "condenseTaskContextRequest"

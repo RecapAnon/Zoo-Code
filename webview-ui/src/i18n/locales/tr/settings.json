@@ -597,12 +597,13 @@
 			"freeAccess": "OAuth kimlik doğrulaması ile ücretsiz erişim"
 		},
 		"antigravity": {
-			"description": "Antigravity, CLIProxyAPI aracı tarafından verilen OAuth kimlik bilgileriyle erişilen Gemini ailesi bir model sağlayıcısıdır.",
-			"oauthPath": "Kimlik bilgileri yolu",
-			"oauthPathDescription": "Antigravity kimlik bilgileri dosyanın yolu. Varsayılan konumu kullanmak için boş bırak (~/.antigravity/antigravity.json).",
-			"projectId": "Proje ID'si",
-			"projectIdDescription": "Gerekli. Antigravity erişimi için kullanılan Google Cloud proje ID'n.",
-			"setupInstructions": "Önce şunu çalıştırarak kimlik doğrulaması yap:"
+			"description": "Antigravity is a Gemini-family model provider that uses your Google account via OAuth.",
+			"signInButton": "Sign in to Antigravity",
+			"signOutButton": "Sign Out",
+			"signedInAs": "Signed in as {{email}}",
+			"signedIn": "Signed in",
+			"projectId": "Project ID",
+			"projectIdDescription": "Required. Your Google Cloud project ID used for Antigravity access."
 		}
 	},
 	"browser": {

@@ -35,6 +35,7 @@ import { Terminal } from "./integrations/terminal/Terminal"
 import { TerminalRegistry } from "./integrations/terminal/TerminalRegistry"
 import { claudeCodeOAuthManager } from "./integrations/claude-code/oauth"
 import { openAiCodexOAuthManager } from "./integrations/openai-codex/oauth"
+import { antigravityOAuthManager } from "./integrations/antigravity/oauth"
 import { McpServerManager } from "./services/mcp/McpServerManager"
 import { CodeIndexManager } from "./services/code-index/manager"
 import { MdmService } from "./services/mdm/MdmService"
@@ -163,6 +164,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize OpenAI Codex OAuth manager for ChatGPT subscription-based access.
 	openAiCodexOAuthManager.initialize(context, (message) => outputChannel.appendLine(message))
+
+	// Initialize Antigravity OAuth manager for native PKCE OAuth.
+	void antigravityOAuthManager
+		.initialize(context, (message) => outputChannel.appendLine(message))
+		.catch((error) => {
+			outputChannel.appendLine(
+				`[antigravity-oauth] initialize failed: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		})
 
 	// Initialize Zoo Code auth service for extension session token management.
 	await initZooCodeAuth(context)

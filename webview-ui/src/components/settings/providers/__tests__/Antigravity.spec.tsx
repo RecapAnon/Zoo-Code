@@ -19,18 +19,44 @@ vi.mock("@vscode/webview-ui-toolkit/react", () => ({
 }))
 
 vi.mock("@src/i18n/TranslationContext", () => ({
-	useAppTranslation: () => ({ t: (key: string) => key }),
+	useAppTranslation: () => ({
+		// Render the key, plus any interpolation values, so we can assert on the resolved text.
+		t: (key: string, params?: Record<string, unknown>) => {
+			if (params && params.email) {
+				return `${key}|${params.email}`
+			}
+			return key
+		},
+	}),
 }))
 
-const DEFAULT_OAUTH_PATH = "~/.antigravity/antigravity.json"
+const postMessageMock = vi.fn()
+vi.mock("@src/utils/vscode", () => ({
+	vscode: {
+		postMessage: (...args: unknown[]) => postMessageMock(...args),
+	},
+}))
 
-function setup(overrides: Partial<ProviderSettings> = {}) {
+function setup(
+	overrides: {
+		apiConfiguration?: Partial<ProviderSettings>
+		antigravityIsAuthenticated?: boolean
+		antigravityUserEmail?: string
+	} = {},
+) {
 	const setApiConfigurationField = vi.fn()
 	const apiConfiguration: ProviderSettings = {
 		apiProvider: "antigravity",
-		...overrides,
+		...(overrides.apiConfiguration ?? {}),
 	}
-	render(<Antigravity apiConfiguration={apiConfiguration} setApiConfigurationField={setApiConfigurationField} />)
+	render(
+		<Antigravity
+			apiConfiguration={apiConfiguration}
+			setApiConfigurationField={setApiConfigurationField}
+			antigravityIsAuthenticated={overrides.antigravityIsAuthenticated}
+			antigravityUserEmail={overrides.antigravityUserEmail}
+		/>,
+	)
 	return { setApiConfigurationField }
 }
 
@@ -39,94 +65,79 @@ describe("Antigravity settings panel", () => {
 		vi.clearAllMocks()
 	})
 
-	describe("rendering", () => {
-		it("renders the i18n-keyed description, oauth path label, project ID label, and setup instructions", () => {
-			setup()
-			expect(screen.getByText("settings:providers.antigravity.description")).toBeInTheDocument()
-			expect(screen.getByText("settings:providers.antigravity.oauthPath")).toBeInTheDocument()
-			expect(screen.getByText("settings:providers.antigravity.oauthPathDescription")).toBeInTheDocument()
-			expect(screen.getByText("settings:providers.antigravity.projectId")).toBeInTheDocument()
-			expect(screen.getByText("settings:providers.antigravity.projectIdDescription")).toBeInTheDocument()
-			expect(screen.getByText("settings:providers.antigravity.setupInstructions")).toBeInTheDocument()
+	describe("unauthenticated state", () => {
+		it("renders a Sign-in button when not authenticated", () => {
+			setup({ antigravityIsAuthenticated: false })
+			expect(screen.getByText("settings:providers.antigravity.signInButton")).toBeInTheDocument()
 		})
 
-		it("renders the default OAuth credentials path as the input placeholder (DD-1)", () => {
-			setup()
-			expect(screen.getByPlaceholderText(DEFAULT_OAUTH_PATH)).toBeInTheDocument()
+		it("posts antigravitySignIn when the Sign-in button is clicked", () => {
+			setup({ antigravityIsAuthenticated: false })
+			const btn = screen.getByText("settings:providers.antigravity.signInButton")
+			fireEvent.click(btn)
+			expect(postMessageMock).toHaveBeenCalledWith({ type: "antigravitySignIn" })
 		})
 
+		it("does not render a Sign-out button when not authenticated", () => {
+			setup({ antigravityIsAuthenticated: false })
+			expect(screen.queryByText("settings:providers.antigravity.signOutButton")).toBeNull()
+		})
+	})
+
+	describe("authenticated state", () => {
+		it("renders 'Signed in as <email>' when an email is available", () => {
+			setup({ antigravityIsAuthenticated: true, antigravityUserEmail: "alice@example.com" })
+			expect(screen.getByText("settings:providers.antigravity.signedInAs|alice@example.com")).toBeInTheDocument()
+		})
+
+		it("renders generic 'Signed in' when no email is available", () => {
+			setup({ antigravityIsAuthenticated: true })
+			expect(screen.getByText("settings:providers.antigravity.signedIn")).toBeInTheDocument()
+		})
+
+		it("renders a Sign-out button when authenticated and posts antigravitySignOut on click", () => {
+			setup({ antigravityIsAuthenticated: true })
+			const out = screen.getByText("settings:providers.antigravity.signOutButton")
+			expect(out).toBeInTheDocument()
+			fireEvent.click(out)
+			expect(postMessageMock).toHaveBeenCalledWith({ type: "antigravitySignOut" })
+		})
+
+		it("does not render a Sign-in button when authenticated", () => {
+			setup({ antigravityIsAuthenticated: true })
+			expect(screen.queryByText("settings:providers.antigravity.signInButton")).toBeNull()
+		})
+	})
+
+	describe("project ID input", () => {
 		it("renders the project ID input with the documented placeholder", () => {
 			setup()
 			expect(screen.getByPlaceholderText("your-gcp-project-id")).toBeInTheDocument()
 		})
 
-		it("displays the existing antigravityOAuthPath value when configured", () => {
-			setup({ antigravityOAuthPath: "/abs/custom/creds.json" })
-			expect(screen.getByDisplayValue("/abs/custom/creds.json")).toBeInTheDocument()
-		})
-
 		it("displays the existing antigravityProjectId value when configured", () => {
-			setup({ antigravityProjectId: "my-gcp-project" })
+			setup({ apiConfiguration: { antigravityProjectId: "my-gcp-project" } })
 			expect(screen.getByDisplayValue("my-gcp-project")).toBeInTheDocument()
 		})
 
-		it("surfaces the literal CLI command users must run to authenticate", () => {
-			setup()
-			// The setup instructions block embeds a <code> with the CLI command. We assert on the
-			// element's tag and text so a future restructure of the surrounding copy still passes.
-			const codeEl = screen.getByText("cli-proxy-api login antigravity")
-			expect(codeEl).toBeInTheDocument()
-			expect(codeEl.tagName).toBe("CODE")
+		it("calls setApiConfigurationField with `antigravityProjectId` on input", () => {
+			const { setApiConfigurationField } = setup()
+			const input = screen.getByPlaceholderText("your-gcp-project-id")
+			fireEvent.input(input, { target: { value: "new-project-id" } })
+			expect(setApiConfigurationField).toHaveBeenCalledWith("antigravityProjectId", "new-project-id")
 		})
 	})
 
-	describe("user interaction", () => {
-		it("calls setApiConfigurationField with `antigravityOAuthPath` on OAuth path input", () => {
-			const { setApiConfigurationField } = setup()
-
-			const oauthInput = screen.getByPlaceholderText(DEFAULT_OAUTH_PATH)
-			fireEvent.input(oauthInput, { target: { value: "/new/path.json" } })
-
-			expect(setApiConfigurationField).toHaveBeenCalledWith("antigravityOAuthPath", "/new/path.json")
+	describe("legacy CLI removal", () => {
+		it("does NOT render the legacy CLI command anywhere", () => {
+			setup()
+			expect(screen.queryByText("cli-proxy-api login antigravity")).toBeNull()
 		})
 
-		it("calls setApiConfigurationField with `antigravityProjectId` on project ID input", () => {
-			const { setApiConfigurationField } = setup()
-
-			const projectInput = screen.getByPlaceholderText("your-gcp-project-id")
-			fireEvent.input(projectInput, { target: { value: "new-project-id" } })
-
-			expect(setApiConfigurationField).toHaveBeenCalledWith("antigravityProjectId", "new-project-id")
-		})
-
-		it("resets antigravityOAuthPath to the default path on blur when empty (DD-1)", () => {
-			const { setApiConfigurationField } = setup()
-
-			const oauthInput = screen.getByPlaceholderText(DEFAULT_OAUTH_PATH)
-			fireEvent.blur(oauthInput, { target: { value: "" } })
-
-			expect(setApiConfigurationField).toHaveBeenCalledWith("antigravityOAuthPath", DEFAULT_OAUTH_PATH)
-		})
-
-		it("resets antigravityOAuthPath to the default path on blur when only whitespace", () => {
-			const { setApiConfigurationField } = setup()
-
-			const oauthInput = screen.getByPlaceholderText(DEFAULT_OAUTH_PATH)
-			fireEvent.blur(oauthInput, { target: { value: "   " } })
-
-			expect(setApiConfigurationField).toHaveBeenCalledWith("antigravityOAuthPath", DEFAULT_OAUTH_PATH)
-		})
-
-		it("does NOT overwrite antigravityOAuthPath on blur when the user provided a non-empty value", () => {
-			const { setApiConfigurationField } = setup({
-				antigravityOAuthPath: "/abs/custom/creds.json",
-			})
-
-			const oauthInput = screen.getByDisplayValue("/abs/custom/creds.json")
-			fireEvent.blur(oauthInput, { target: { value: "/abs/custom/creds.json" } })
-
-			// onBlur should not call the setter with the default when the field already has content.
-			expect(setApiConfigurationField).not.toHaveBeenCalledWith("antigravityOAuthPath", DEFAULT_OAUTH_PATH)
+		it("does NOT render an OAuth credentials path field", () => {
+			setup()
+			expect(screen.queryByText("settings:providers.antigravity.oauthPath")).toBeNull()
+			expect(screen.queryByText("settings:providers.antigravity.setupInstructions")).toBeNull()
 		})
 	})
 })

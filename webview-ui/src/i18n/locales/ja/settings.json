@@ -597,12 +597,13 @@
 			"freeAccess": "OAuth認証による無料アクセス"
 		},
 		"antigravity": {
-			"description": "Antigravity は、CLIProxyAPI ツールが発行した OAuth 認証情報でアクセスする Gemini ファミリーのモデルプロバイダーです。",
-			"oauthPath": "認証情報のパス",
-			"oauthPathDescription": "Antigravity 認証情報ファイルへのパスです。空のままにすると既定の場所 (~/.antigravity/antigravity.json) を使用します。",
-			"projectId": "プロジェクト ID",
-			"projectIdDescription": "必須。Antigravity アクセスに使用する Google Cloud プロジェクト ID です。",
-			"setupInstructions": "先に次を実行して認証してください:"
+			"description": "Antigravity is a Gemini-family model provider that uses your Google account via OAuth.",
+			"signInButton": "Sign in to Antigravity",
+			"signOutButton": "Sign Out",
+			"signedInAs": "Signed in as {{email}}",
+			"signedIn": "Signed in",
+			"projectId": "Project ID",
+			"projectIdDescription": "Required. Your Google Cloud project ID used for Antigravity access."
 		}
 	},
 	"browser": {

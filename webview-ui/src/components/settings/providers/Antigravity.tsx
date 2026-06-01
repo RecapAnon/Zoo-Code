@@ -3,31 +3,23 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { type ProviderSettings } from "@roo-code/types"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
+import { Button } from "@src/components/ui"
+import { vscode } from "@src/utils/vscode"
 
 interface AntigravityProps {
 	apiConfiguration: ProviderSettings
 	setApiConfigurationField: (field: keyof ProviderSettings, value: ProviderSettings[keyof ProviderSettings]) => void
+	antigravityIsAuthenticated?: boolean
+	antigravityUserEmail?: string
 }
 
-// Default credentials path per design DD-1 (revised in Gate 2): Zoo Code uses its own
-// `~/.antigravity/` namespace rather than CLIProxyAPI's `DefaultAuthDir`. Filename matches
-// `CLIProxyAPI/internal/auth/antigravity/filename.go` (`antigravity.json`).
-const DEFAULT_OAUTH_PATH = "~/.antigravity/antigravity.json"
-
-export const Antigravity: React.FC<AntigravityProps> = ({ apiConfiguration, setApiConfigurationField }) => {
+export const Antigravity: React.FC<AntigravityProps> = ({
+	apiConfiguration,
+	setApiConfigurationField,
+	antigravityIsAuthenticated = false,
+	antigravityUserEmail,
+}) => {
 	const { t } = useAppTranslation()
-
-	const handlePathChange = (e: Event | React.FormEvent<HTMLElement>) => {
-		const element = e.target as HTMLInputElement
-		setApiConfigurationField("antigravityOAuthPath", element.value)
-	}
-
-	const handlePathBlur = (e: Event | React.FormEvent<HTMLElement>) => {
-		const element = e.target as HTMLInputElement
-		if (!element.value || element.value.trim() === "") {
-			setApiConfigurationField("antigravityOAuthPath", DEFAULT_OAUTH_PATH)
-		}
-	}
 
 	const handleProjectChange = (e: Event | React.FormEvent<HTMLElement>) => {
 		const element = e.target as HTMLInputElement
@@ -40,19 +32,34 @@ export const Antigravity: React.FC<AntigravityProps> = ({ apiConfiguration, setA
 				{t("settings:providers.antigravity.description")}
 			</div>
 
-			<div>
-				<VSCodeTextField
-					value={apiConfiguration?.antigravityOAuthPath || ""}
-					className="w-full mt-1"
-					type="text"
-					onInput={handlePathChange}
-					onBlur={handlePathBlur}
-					placeholder={DEFAULT_OAUTH_PATH}>
-					<label className="block font-medium mb-1">{t("settings:providers.antigravity.oauthPath")}</label>
-				</VSCodeTextField>
-				<p className="text-xs mt-1 text-vscode-descriptionForeground">
-					{t("settings:providers.antigravity.oauthPathDescription")}
-				</p>
+			{/* Authentication section: sign-in button or signed-in pill + sign-out. */}
+			<div className="flex flex-col gap-2">
+				{antigravityIsAuthenticated ? (
+					<div className="flex items-center justify-between gap-2">
+						<div className="text-sm text-vscode-descriptionForeground">
+							{antigravityUserEmail
+								? t("settings:providers.antigravity.signedInAs", { email: antigravityUserEmail })
+								: t("settings:providers.antigravity.signedIn")}
+						</div>
+						<Button
+							variant="secondary"
+							size="sm"
+							onClick={() => vscode.postMessage({ type: "antigravitySignOut" })}>
+							{t("settings:providers.antigravity.signOutButton", {
+								defaultValue: "Sign Out",
+							})}
+						</Button>
+					</div>
+				) : (
+					<Button
+						variant="primary"
+						onClick={() => vscode.postMessage({ type: "antigravitySignIn" })}
+						className="w-fit">
+						{t("settings:providers.antigravity.signInButton", {
+							defaultValue: "Sign in to Antigravity",
+						})}
+					</Button>
+				)}
 			</div>
 
 			<div>
@@ -67,11 +74,6 @@ export const Antigravity: React.FC<AntigravityProps> = ({ apiConfiguration, setA
 				<p className="text-xs mt-1 text-vscode-descriptionForeground">
 					{t("settings:providers.antigravity.projectIdDescription")}
 				</p>
-			</div>
-
-			<div className="text-xs text-vscode-descriptionForeground">
-				{t("settings:providers.antigravity.setupInstructions")}{" "}
-				<code className="text-vscode-textPreformat-foreground">cli-proxy-api login antigravity</code>
 			</div>
 		</div>
 	)

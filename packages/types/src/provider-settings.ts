@@ -304,7 +304,6 @@ const geminiCliSchema = apiModelIdProviderModelSchema.extend({
 })
 
 const antigravitySchema = apiModelIdProviderModelSchema.extend({
-	antigravityOAuthPath: z.string().optional(),
 	antigravityProjectId: z.string().optional(),
 })
 

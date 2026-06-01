@@ -115,7 +115,6 @@ const TEST_MODEL_ID: AntigravityModelId = "gemini-3-pro-high"
 function buildHandler(overrides: Record<string, unknown> = {}) {
 	return new AntigravityHandler({
 		apiModelId: TEST_MODEL_ID,
-		antigravityOAuthPath: "~/.antigravity/antigravity.json",
 		antigravityProjectId: "test-project-123",
 		...overrides,
 	} as ConstructorParameters<typeof AntigravityHandler>[0])
@@ -294,6 +293,11 @@ describe("AntigravityHandler.createMessage 401 retry", () => {
 		expect(mockedManager.ensureAuthenticated).toHaveBeenCalledTimes(1)
 		expect(mockedManager.forceRefresh).toHaveBeenCalledTimes(1)
 		expect(fetchMock).toHaveBeenCalledTimes(2)
+
+		// Regression guard: the OAuth manager methods are no-arg singletons. Runtime must
+		// never pass any path or option object through to the manager.
+		expect(mockedManager.ensureAuthenticated).toHaveBeenCalledWith()
+		expect(mockedManager.forceRefresh).toHaveBeenCalledWith()
 
 		// Second request uses the refreshed access token.
 		const secondHeaders = (fetchMock.mock.calls[1][1] as RequestInit).headers as Record<string, string>
@@ -554,5 +558,362 @@ describe("AntigravityHandler.getModel custom-model-id pass-through", () => {
 
 		const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
 		expect(body.model).toBe(customId)
+	})
+})
+
+describe("AntigravityHandler.createMessage tool definitions", () => {
+	// Minimal OpenAI ChatCompletionTool literals — the handler reads only
+	// `function.name`, `function.description`, and `function.parameters`.
+	const askFollowupTool = {
+		type: "function" as const,
+		function: {
+			name: "ask_followup_question",
+			description: "Ask the user a clarifying question.",
+			parameters: {
+				type: "object",
+				properties: {
+					question: { type: "string" },
+				},
+				required: ["question"],
+			},
+		},
+	}
+
+	// Regression for: "Invalid JSON payload received. Unknown name \"custom\" at
+	// 'request.tools[0]': Cannot find field" returned by cloudcode-pa.googleapis.com
+	// when Claude-family Antigravity tools were wrapped in `{ custom: { ... } }`.
+	// Both model families must send the unified Gemini-style envelope.
+
+	it("emits Claude-family tools using the unified Gemini-style functionDeclarations envelope (no custom wrapper)", async () => {
+		fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+		const handler = buildHandler({ apiModelId: "claude-sonnet-4-6" })
+		await consume(
+			handler.createMessage(systemPrompt, messages, {
+				taskId: "t",
+				tools: [askFollowupTool],
+			}),
+		)
+
+		const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+		expect(Array.isArray(body.request.tools)).toBe(true)
+		expect(body.request.tools.length).toBe(1)
+
+		const firstTool = body.request.tools[0]
+		// Hard regression guard: the field name `custom` must never appear in tools[*]
+		// because cloudcode-pa rejects it with HTTP 400 "Unknown name 'custom'".
+		expect(firstTool.custom).toBeUndefined()
+		expect(firstTool.functionDeclarations).toBeDefined()
+		expect(firstTool.functionDeclarations).toHaveLength(1)
+		expect(firstTool.functionDeclarations[0].name).toBe("ask_followup_question")
+		expect(firstTool.functionDeclarations[0].description).toBe("Ask the user a clarifying question.")
+		// Wire-format invariant: the parameter schema is emitted under `parameters`,
+		// NOT `parametersJsonSchema`. The cloudcode-pa endpoint silently drops the
+		// schema for the latter on non-pro Gemini and gpt-oss models, which causes
+		// the model to emit `args: {}` and trips the native tool-call parser with
+		// "missing nativeArgs".
+		expect(firstTool.functionDeclarations[0].parameters).toEqual({
+			type: "object",
+			properties: { question: { type: "string" } },
+			required: ["question"],
+		})
+		expect(firstTool.functionDeclarations[0].parametersJsonSchema).toBeUndefined()
+		// And `input_schema` (the Anthropic key) must not leak into the wire format.
+		expect(firstTool.functionDeclarations[0].input_schema).toBeUndefined()
+	})
+
+	it("emits the same Gemini-style functionDeclarations envelope for gpt-oss-120b-medium (no custom wrapper)", async () => {
+		// Regression coverage for the user-reported failure on gpt-oss-120b-medium:
+		// the non-Claude branch must continue to produce the upstream-supported shape
+		// and must not leak any `custom` field into tools[*].
+		fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+		const handler = buildHandler({ apiModelId: "gpt-oss-120b-medium" })
+		await consume(
+			handler.createMessage(systemPrompt, messages, {
+				taskId: "t",
+				tools: [askFollowupTool],
+			}),
+		)
+
+		const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+		expect(Array.isArray(body.request.tools)).toBe(true)
+		const firstTool = body.request.tools[0]
+		expect(firstTool.custom).toBeUndefined()
+		expect(firstTool.functionDeclarations).toBeDefined()
+		expect(firstTool.functionDeclarations[0].name).toBe("ask_followup_question")
+		expect(firstTool.functionDeclarations[0].parameters).toEqual({
+			type: "object",
+			properties: { question: { type: "string" } },
+			required: ["question"],
+		})
+		expect(firstTool.functionDeclarations[0].parametersJsonSchema).toBeUndefined()
+	})
+
+	it("keeps the Gemini-style functionDeclarations envelope for Gemini-family Antigravity models", async () => {
+		fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+		const handler = buildHandler({ apiModelId: "gemini-3-pro-high" })
+		await consume(
+			handler.createMessage(systemPrompt, messages, {
+				taskId: "t",
+				tools: [askFollowupTool],
+			}),
+		)
+
+		const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+		expect(Array.isArray(body.request.tools)).toBe(true)
+		const firstTool = body.request.tools[0]
+		expect(firstTool.functionDeclarations).toBeDefined()
+		expect(firstTool.custom).toBeUndefined()
+		expect(firstTool.functionDeclarations[0].name).toBe("ask_followup_question")
+		expect(firstTool.functionDeclarations[0].parameters).toEqual({
+			type: "object",
+			properties: { question: { type: "string" } },
+			required: ["question"],
+		})
+		expect(firstTool.functionDeclarations[0].parametersJsonSchema).toBeUndefined()
+	})
+
+	it("never serializes a `custom` discriminator anywhere in the outgoing payload (hard regression)", async () => {
+		// Defense-in-depth scan against the upstream rejection
+		// "Unknown name 'custom' at 'request.tools[0]'". This guards against future
+		// refactors that might reintroduce the bad envelope under a different code path.
+		fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+		const handler = buildHandler({ apiModelId: "claude-sonnet-4-6" })
+		await consume(
+			handler.createMessage(systemPrompt, messages, {
+				taskId: "t",
+				tools: [askFollowupTool],
+			}),
+		)
+
+		const rawBody = String((fetchMock.mock.calls[0][1] as RequestInit).body)
+		// Whole-payload textual guard: no "custom" key may appear in the serialized
+		// request — the live server rejects it. Matching on the exact JSON key form
+		// avoids accidental matches inside user-supplied strings.
+		expect(rawBody).not.toContain('"custom":')
+	})
+
+	it("passes a Claude tool with no parameters through with parametersJsonSchema undefined (no custom wrapper)", async () => {
+		fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+		const handler = buildHandler({ apiModelId: "claude-sonnet-4-6" })
+		const noParamsTool = {
+			type: "function" as const,
+			function: {
+				name: "ping",
+				description: "no-arg tool",
+				// parameters intentionally omitted
+			},
+		} as unknown as typeof askFollowupTool
+		await consume(
+			handler.createMessage(systemPrompt, messages, {
+				taskId: "t",
+				tools: [noParamsTool],
+			}),
+		)
+
+		const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+		const firstTool = body.request.tools[0]
+		expect(firstTool.custom).toBeUndefined()
+		expect(firstTool.functionDeclarations[0].name).toBe("ping")
+		// When upstream tools omit `parameters`, the field is simply absent on the wire;
+		// the server tolerates a missing schema (it is the unknown `custom` discriminator
+		// that triggered the original 400, not the absence of a schema).
+		expect(firstTool.functionDeclarations[0].parameters).toBeUndefined()
+		expect(firstTool.functionDeclarations[0].parametersJsonSchema).toBeUndefined()
+	})
+
+	it("does not attach a tools array when no tools are declared", async () => {
+		fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+		const handler = buildHandler({ apiModelId: "claude-sonnet-4-6" })
+		await consume(handler.createMessage(systemPrompt, messages))
+
+		const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+		expect(body.request.tools).toBeUndefined()
+	})
+
+	// Regression suite for "gemini-3.5-flash-low repeatedly emits functionCall
+	// with args: {}". Root cause: the upstream cloudcode-pa endpoint silently
+	// dropped tool parameter schemas when keywords it does not understand were
+	// present (`additionalProperties`, multi-type arrays, `minItems`, `maxItems`,
+	// `pattern`, ...), AND when the field was named `parametersJsonSchema`
+	// instead of `parameters`. The model then saw a contract-less tool and
+	// emitted empty args, which `NativeToolCallParser.parseToolCall` rejects
+	// with "Invalid tool call for '<name>': missing nativeArgs."
+	describe("schema sanitization for non-pro Gemini family (gemini-3.5-flash-low regression)", () => {
+		const askFollowupToolFull = {
+			type: "function" as const,
+			function: {
+				name: "ask_followup_question",
+				description: "Ask the user a clarifying question.",
+				parameters: {
+					$schema: "http://json-schema.org/draft-07/schema#",
+					title: "AskFollowup",
+					type: "object",
+					additionalProperties: false,
+					properties: {
+						question: {
+							type: "string",
+							description: "The question",
+							minLength: 1,
+						},
+						follow_up: {
+							type: "array",
+							minItems: 1,
+							maxItems: 4,
+							items: {
+								type: "object",
+								additionalProperties: false,
+								properties: {
+									text: { type: "string" },
+									mode: {
+										type: ["string", "null"],
+										description: "Optional mode",
+									},
+								},
+								required: ["text", "mode"],
+							},
+						},
+					},
+					required: ["question", "follow_up"],
+				},
+			},
+		} as const
+
+		it("renames parametersJsonSchema to parameters on the wire for gemini-3.5-flash-low", async () => {
+			fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+			const handler = buildHandler({ apiModelId: "gemini-3.5-flash-low" })
+			await consume(
+				handler.createMessage(systemPrompt, messages, {
+					taskId: "t",
+					tools: [askFollowupToolFull as any],
+				}),
+			)
+
+			const rawBody = String((fetchMock.mock.calls[0][1] as RequestInit).body)
+			// Whole-payload guard: the legacy field name must never appear on the
+			// wire for any model. The Go reference's `util.RenameKey` walk would
+			// have removed it, so we never emit it in the first place.
+			expect(rawBody).not.toContain('"parametersJsonSchema"')
+
+			const body = JSON.parse(rawBody)
+			const decl = body.request.tools[0].functionDeclarations[0]
+			expect(decl.parameters).toBeDefined()
+			expect(decl.parametersJsonSchema).toBeUndefined()
+		})
+
+		it("strips keywords the Gemini schema dialect does not understand (additionalProperties, $schema, title, minItems/maxItems, minLength)", async () => {
+			fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+			const handler = buildHandler({ apiModelId: "gemini-3.5-flash-low" })
+			await consume(
+				handler.createMessage(systemPrompt, messages, {
+					taskId: "t",
+					tools: [askFollowupToolFull as any],
+				}),
+			)
+
+			const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+			const params = body.request.tools[0].functionDeclarations[0].parameters
+
+			// Structural keywords stripped at every level.
+			expect(params.$schema).toBeUndefined()
+			expect(params.title).toBeUndefined()
+			expect(params.additionalProperties).toBeUndefined()
+			// Constraint keywords stripped from leaf nodes.
+			expect(params.properties.question.minLength).toBeUndefined()
+			expect(params.properties.follow_up.minItems).toBeUndefined()
+			expect(params.properties.follow_up.maxItems).toBeUndefined()
+			// And from nested items objects.
+			expect(params.properties.follow_up.items.additionalProperties).toBeUndefined()
+
+			// `required` is preserved (these are the contract the model needs).
+			expect(params.required).toEqual(["question", "follow_up"])
+			expect(params.properties.follow_up.items.required).toEqual(["text", "mode"])
+
+			// Constraint hints are surfaced into description so the model still
+			// sees the intent.
+			expect(typeof params.properties.question.description).toBe("string")
+			expect(params.properties.question.description).toContain("minLength: 1")
+			// follow_up had `minItems`/`maxItems` constraints; the sanitizer drops
+			// the keywords and appends a description hint in their place.
+			expect(typeof params.properties.follow_up.description).toBe("string")
+			expect(params.properties.follow_up.description).toContain("minItems: 1")
+			expect(params.properties.follow_up.description).toContain("maxItems: 4")
+		})
+
+		it('flattens type: ["string", "null"] arrays to a single type for the Gemini dialect (no nullable, no array)', async () => {
+			fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+			const handler = buildHandler({ apiModelId: "gemini-3.5-flash-low" })
+			await consume(
+				handler.createMessage(systemPrompt, messages, {
+					taskId: "t",
+					tools: [askFollowupToolFull as any],
+				}),
+			)
+
+			const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+			const modeField =
+				body.request.tools[0].functionDeclarations[0].parameters.properties.follow_up.items.properties.mode
+			expect(modeField.type).toBe("string")
+			// Gemini dialect drops `nullable` entirely.
+			expect(modeField.nullable).toBeUndefined()
+		})
+
+		it("keeps nullable for the Antigravity dialect (gemini-3-pro-high) when flattening type arrays", async () => {
+			fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+			const handler = buildHandler({ apiModelId: "gemini-3-pro-high" })
+			await consume(
+				handler.createMessage(systemPrompt, messages, {
+					taskId: "t",
+					tools: [askFollowupToolFull as any],
+				}),
+			)
+
+			const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+			const modeField =
+				body.request.tools[0].functionDeclarations[0].parameters.properties.follow_up.items.properties.mode
+			expect(modeField.type).toBe("string")
+			expect(modeField.nullable).toBe(true)
+		})
+
+		it("preserves required at the root and at nested levels after sanitization", async () => {
+			// Defense-in-depth: the bug surfaces when the model emits args: {},
+			// which is far more likely if the schema's `required` array is lost.
+			fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+			const handler = buildHandler({ apiModelId: "gemini-3.5-flash-low" })
+			await consume(
+				handler.createMessage(systemPrompt, messages, {
+					taskId: "t",
+					tools: [askFollowupToolFull as any],
+				}),
+			)
+
+			const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+			const params = body.request.tools[0].functionDeclarations[0].parameters
+			expect(params.required).toEqual(["question", "follow_up"])
+		})
+
+		it("does not mutate the caller-supplied metadata.tools (sanitizer is pure)", async () => {
+			fetchMock.mockResolvedValueOnce(makeSseResponse(["data: [DONE]"]))
+
+			const handler = buildHandler({ apiModelId: "gemini-3.5-flash-low" })
+			const original = JSON.parse(JSON.stringify(askFollowupToolFull))
+			await consume(
+				handler.createMessage(systemPrompt, messages, {
+					taskId: "t",
+					tools: [askFollowupToolFull as any],
+				}),
+			)
+			expect(askFollowupToolFull).toEqual(original)
+		})
 	})
 })

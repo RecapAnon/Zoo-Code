@@ -2525,6 +2525,22 @@ export class ClineProvider
 					return false
 				}
 			})(),
+			antigravityIsAuthenticated: await (async () => {
+				try {
+					const { antigravityOAuthManager } = await import("../../integrations/antigravity/oauth")
+					return await antigravityOAuthManager.isAuthenticated()
+				} catch {
+					return false
+				}
+			})(),
+			antigravityUserEmail: await (async () => {
+				try {
+					const { antigravityOAuthManager } = await import("../../integrations/antigravity/oauth")
+					return (await antigravityOAuthManager.getEmail()) ?? undefined
+				} catch {
+					return undefined
+				}
+			})(),
 			...zooCodeState,
 			platform: process.platform,
 			arch: process.arch,
