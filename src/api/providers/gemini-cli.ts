@@ -537,7 +537,7 @@ export class GeminiCliHandler extends BaseProvider implements SingleCompletionHa
 
 			// Extract text from response
 			const responseData = response.data as any
-			let text = responseData?.text ?? ""
+			const text = responseData?.text ?? ""
 			if (responseData.candidates && responseData.candidates.length > 0) {
 				const candidate = responseData.candidates[0]
 				if (candidate.content && candidate.content.parts) {

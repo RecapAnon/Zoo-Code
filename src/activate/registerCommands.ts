@@ -318,7 +318,7 @@ Please provide ONLY the commit message, without any additional explanation or fo
 								}
 
 								// Clear the task
-								visibleProvider.clearTask()
+								void visibleProvider.clearTask()
 								resolve()
 							}
 						}, 100)
@@ -328,7 +328,7 @@ Please provide ONLY the commit message, without any additional explanation or fo
 						`Failed to generate commit message: ${error instanceof Error ? error.message : String(error)}`,
 					)
 					if (visibleProvider) {
-						visibleProvider.clearTask()
+						void visibleProvider.clearTask()
 					}
 				}
 			},

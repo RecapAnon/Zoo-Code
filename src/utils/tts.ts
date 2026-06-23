@@ -21,7 +21,7 @@ let isTtsEnabled = false
 let speed = 1.0
 let sayInstance: Say | undefined = undefined
 let queue: QueueItem[] = []
-let currentProvider: TtsProviderInterface | null = null
+const currentProvider: TtsProviderInterface | null = null
 let providerFactory: TtsProviderFactory | null = null
 let contextProxy: ContextProxy | null = null
 
